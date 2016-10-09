@@ -17,3 +17,7 @@ Phases of execution of 1 instruction:
  - input (Read from input address)
  - output (Write to output address a copy of the bit from input address, instruction selection from path chooser address (It could be written or not in the output phase. To write it the selected output address is the path chooser address))
  (Repeat in a loop to execute more than 1 instruction)
+
+It can be used as a model for an Intermediate Representation (IR) LLVM-style (Low-Level Virtual Machine, but this is lower level, perhaps lowest level https://en.wikipedia.org/wiki/LLVM).
+For example CPU code could be trasformed to IR, the code in IR is trasformed (e.g. bit level, fine-grained optimization), then the code is trasformed to CPU code (or left as  is if then is a CPU of this simplest kind, URISC).
+Code for this CPU (the IR of the previous discussion) could be obtained from a C compiler frontend (again, LLVM-style).
