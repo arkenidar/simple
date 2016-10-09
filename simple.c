@@ -117,17 +117,12 @@ void path_choice(){
 }
 
 int main(int argc, char **argv) {
-
 	printf(" ( ");
-
 	while(1){
-		if(current_op== EXIT){
-			printf(" ) ");
-			break;
-		}
+		if(current_op==EXIT) break;
 		perform_operation();
 		path_choice();
 	}
-
+	printf(" ) ");
 	return 0;
 }
