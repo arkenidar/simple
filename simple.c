@@ -22,26 +22,26 @@ typedef struct {
 #define EXIT -1
 long current_op = 0;
 
-// demo0: bit copy
-instruction_type instructions_demo0[] =	{
+// program: bit copy
+instruction_type prog_bitcopy[] =	{
 	{ {OUT, IN}, {0,0} },
 };
 
-// demo1: bit copy with exit or repeat
-instruction_type instructions_demo1[] =	{
+// program: bit copy with exit or repeat
+instruction_type prog_bitcopy_exit[] =	{
 	{ {OUT, IN}, {1,1} },
 	{ {PATH_CHOOSER, IN}, {0, EXIT} }
 };
 
-// demo2: NOT gate emulation
-instruction_type instructions_demo2[] =	{
+// program: NOT gate emulation
+instruction_type prog_not[] =	{
 	{ {PATH_CHOOSER, IN}, {2, 1} },
 	{ {OUT, ZERO}, {0, 0} },
 	{ {OUT, ONE}, {0, 0} }
 };
 
-// demo3: AND gate emulation
-instruction_type instructions_demo3[] =	{
+// program: AND gate emulation
+instruction_type prog_and[] =	{
 	{ {PATH_CHOOSER, IN}, {1,4} },
 	{ {PATH_CHOOSER, IN}, {2, 2} },
 	{ {OUT, ZERO}, {0, 0} },
@@ -49,8 +49,8 @@ instruction_type instructions_demo3[] =	{
 	{ {PATH_CHOOSER, IN}, {2, 3} }
 };
 
-// demo4: OR gate emulation
-instruction_type instructions_demo4[] =	{
+// program: OR gate emulation
+instruction_type prog_or[] =	{
 	{ {PATH_CHOOSER, IN}, {1,4} },
 	{ {PATH_CHOOSER, IN}, {2, 3} },
 	{ {OUT, ZERO}, {0, 0} },
@@ -58,8 +58,8 @@ instruction_type instructions_demo4[] =	{
 	{ {PATH_CHOOSER, IN}, {3, 3} }
 };
 
-// demo5: NAND gate emulation
-instruction_type instructions_demo5[] =	{
+// program: NAND gate emulation
+instruction_type prog_nand[] =	{
 	{ {PATH_CHOOSER, IN}, {1,4} },
 	{ {PATH_CHOOSER, IN}, {2, 2} },
 	{ {OUT, ONE}, {0, 0} },
@@ -67,8 +67,8 @@ instruction_type instructions_demo5[] =	{
 	{ {PATH_CHOOSER, IN}, {2, 3} }
 };
 
-// demo6: NOR gate emulation
-instruction_type instructions_demo6[] =	{
+// program: NOR gate emulation
+instruction_type prog_nor[] =	{
 	{ {PATH_CHOOSER, IN}, {1,4} },
 	{ {PATH_CHOOSER, IN}, {2, 3} },
 	{ {OUT, ONE}, {0, 0} },
@@ -78,7 +78,7 @@ instruction_type instructions_demo6[] =	{
 
 // "program selector"
 // - use "program selector" to select which program to run in the RTM
-instruction_type* instructions = instructions_demo6;
+instruction_type* instructions = prog_nor;
 
 #ifndef _WIN32
 #include <unistd.h>
