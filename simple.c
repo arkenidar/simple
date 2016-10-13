@@ -10,11 +10,11 @@ typedef struct {
 } instruction_type;
 
 // reserved constants for mapping[0] or mapping[1]
-#define PATH_CHOOSER -1
-#define OUT -2
-#define IN -3
-#define ZERO -4
-#define ONE -5
+#define PATH_CHOOSER 0
+#define OUT 1
+#define IN 2
+#define ZERO 3
+#define ONE 4
 
 // reserved constants for current_op, paths[0] or paths[1]
 #define EXIT -1
@@ -78,11 +78,42 @@ instruction_type instructions_demo6[] =	{
 // - use "program selector" to select which program to run in the RTM
 instruction_type* instructions = instructions_demo6;
 
+#ifndef _WIN32
+#include <unistd.h>
+#include <termios.h>
+char getch(){
+    char buf=0;
+    struct termios old={0};
+    fflush(stdout);
+    if(tcgetattr(0, &old)<0)
+        perror("tcsetattr()");
+    old.c_lflag&=~ICANON;
+    old.c_lflag&=~ECHO;
+    old.c_cc[VMIN]=1;
+    old.c_cc[VTIME]=0;
+    if(tcsetattr(0, TCSANOW, &old)<0)
+        perror("tcsetattr ICANON");
+    if(read(0,&buf,1)<0)
+        perror("read()");
+    old.c_lflag|=ICANON;
+    old.c_lflag|=ECHO;
+    if(tcsetattr(0, TCSADRAIN, &old)<0)
+        perror ("tcsetattr ~ICANON");
+    printf("%c",buf);
+    return buf;
+ }
+#endif
+
 int getbit(){
-	char ch = _getche();
+	char ch;
+	#ifdef _WIN32
+		ch = _getche();
+	#else
+		ch = getch();
+	#endif
 	if (ch=='0' || ch=='1') return ch-'0';
 	else if (ch=='q'){
-		printf(" } ");
+		printf(" ) ");
 		exit(0);
 	}
 	else return -1;
