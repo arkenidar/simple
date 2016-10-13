@@ -77,7 +77,7 @@ instruction_type prog_nor[] =	{
 };
 
 // "program selector"
-// - use "program selector" to select which program to run in the RTM
+// - use "program selector" to select which program to run in the Turing Machine
 instruction_type* instructions = prog_nor;
 
 #ifndef _WIN32
