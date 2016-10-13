@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef _WIN32
 #include <conio.h>
+#endif
 
 char memory[] = {0,0,0,0,0,0,0,0,0,0};
 
