@@ -121,24 +121,28 @@ int getbit(){
 	else return -1;
 }
 
-int getinput(char* mapping, int index){
+int read_memory(char* mapping, int index){
 	int value;
 	if(mapping[index]==IN) {
 		 while( (value = getbit()) == -1 ){
 			printf(" !insert bit (type '0' or '1') or quit! (type 'q') ");
 		}
+		memory[(int) mapping[index]] = value;
 	} else if(mapping[index]==ZERO) {
 		value = 0;
+		memory[(int) mapping[index]] = value;
 	} else if(mapping[index]==ONE) {
 		value = 1;
+		memory[(int) mapping[index]] = value;
+	} else {
+		value = memory[(int) mapping[index]];
 	}
-	memory[(int) mapping[index]] = value;
 	return value;
 }
 
 void perform_operation(){
 	instruction_type instruction = prog_selector[current_op];
-	memory[ (int) instruction.mapping[0]] = getinput(instruction.mapping, 1);	
+	memory[ (int) instruction.mapping[0]] = read_memory(instruction.mapping, 1);	
 	if(instruction.mapping[0]==OUT)printf("%d",memory[OUT]);
 }
 
