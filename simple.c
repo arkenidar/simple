@@ -4,11 +4,12 @@
 #include <conio.h>
 #endif
 
-char memory[] = {0,0,0,0,0,0,0,0,0,0};
+typedef char bit_type;
+bit_type memory[256] = {0};
 
 typedef struct {
-	long mapping[2];
-	long paths[2];
+	char mapping[2]; // 8 bit data addressing (256 bits of data memory)
+	char paths[2]; // 8 bit instruction addressing (256 instructions)
 } instruction_type;
 
 // reserved constants for mapping[0] or mapping[1]
@@ -76,9 +77,8 @@ instruction_type prog_nor[] =	{
 	{ {PATH_CHOOSER, IN}, {3, 3} }
 };
 
-// "program selector"
-// - use "program selector" to select which program to run in the Turing Machine
-instruction_type* instructions = prog_nor;
+// use "program selector" to select which program to run in the Machine
+instruction_type* prog_selector = prog_nor;
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -121,7 +121,7 @@ int getbit(){
 	else return -1;
 }
 
-int getinput(long* mapping, int index){
+int getinput(char* mapping, int index){
 	int value;
 	if(mapping[index]==IN) {
 		 while( (value = getbit()) == -1 ){
@@ -132,18 +132,18 @@ int getinput(long* mapping, int index){
 	} else if(mapping[index]==ONE) {
 		value = 1;
 	}
-	memory[mapping[index]] = value;
+	memory[(int) mapping[index]] = value;
 	return value;
 }
 
 void perform_operation(){
-	instruction_type instruction = instructions[current_op];
-	memory[instruction.mapping[0]] = getinput(instruction.mapping, 1);	
+	instruction_type instruction = prog_selector[current_op];
+	memory[ (int) instruction.mapping[0]] = getinput(instruction.mapping, 1);	
 	if(instruction.mapping[0]==OUT)printf("%d",memory[OUT]);
 }
 
 void path_choice(){
-	instruction_type instruction = instructions[current_op];
+	instruction_type instruction = prog_selector[current_op];
 	current_op = instruction.paths[
 		(int) memory[PATH_CHOOSER]
 	];
