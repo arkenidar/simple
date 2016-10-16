@@ -7,7 +7,7 @@
 typedef char bit_type;
 bit_type memory[256] = {0};
 
-typedef struct {
+typedef struct instruction_type_struct{
 	char mapping[2]; // 8 bit data addressing (256 bits of data memory)
 	char paths[2]; // 8 bit instruction addressing (256 instructions)
 } instruction_type;
