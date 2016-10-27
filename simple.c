@@ -3,8 +3,20 @@
 #ifdef _WIN32
 #include <conio.h>
 #endif
+#include <assert.h>
 
-typedef char bit_type;
+#define SIMPLE_BIT_ACCESS 1
+#define BITWISE_OPS_BIT_ACCESS 2
+
+#define BIT_ACCESS_IN_USE BITWISE_OPS_BIT_ACCESS
+
+#if BIT_ACCESS_IN_USE == SIMPLE_BIT_ACCESS
+	typedef char bit_type;
+#endif
+#if BIT_ACCESS_IN_USE == BITWISE_OPS_BIT_ACCESS
+	typedef int bit_type;
+#endif
+
 bit_type memory[256] = {0};
 
 typedef struct instruction_type_struct{
@@ -121,7 +133,48 @@ int getbit(){
 	else return -1;
 }
 
-int read_memory(char read_from){
+#define BitVal(data,y)   ( (data>>y) & 1)  /** Return Data.Y value **/
+#define ClearBit(data,y) data &= ~(1 << y) /** Clear Data.Y to 0   **/
+#define SetBit(data,y)   data |= (1 << y)  /** Set Data.Y to 1     **/
+
+#define bitArray_wordSize (sizeof(bit_type)*8);
+#define bitArray_wordIndex(bit_address) bit_address/bitArray_wordSize
+#define bitArray_bitIndex(bit_address)  bit_address%bitArray_wordSize
+
+void write_bit_to_memory(int write_to, int bit){
+
+	#if BIT_ACCESS_IN_USE == SIMPLE_BIT_ACCESS
+		memory[write_to] = bit;
+	#endif
+
+	#if BIT_ACCESS_IN_USE == BITWISE_OPS_BIT_ACCESS
+		
+		int data = bitArray_wordIndex(write_to);
+		int y = bitArray_bitIndex(write_to);
+		
+		if(bit==0)      ClearBit(memory[data],y);
+		else if(bit==1) SetBit(memory[data],y);
+	#endif
+}
+
+int read_bit_from_memory(int read_from){
+	int value;
+	#if BIT_ACCESS_IN_USE == SIMPLE_BIT_ACCESS
+		value = memory[read_from];
+	#endif
+
+	#if BIT_ACCESS_IN_USE == BITWISE_OPS_BIT_ACCESS
+		
+		int data = bitArray_wordIndex(read_from);
+		int y = bitArray_bitIndex(read_from);
+		
+		value = BitVal(memory[data],y);
+	#endif
+
+	return value;
+}
+
+int read_bit_from_address(int read_from){
 	int value;
 	if(read_from==IN) {
 		 while( (value = getbit()) == -1 ){
@@ -135,14 +188,16 @@ int read_memory(char read_from){
 		value = 1;
 		memory[ONE] = value;
 	} else {
-		value = memory[(int)read_from];
+		value = read_bit_from_memory(read_from);
 	}
 	return value;
 }
 
 void perform_operation(){
 	instruction_type instruction = prog_selector[current_op];
-	memory[ (int) instruction.mapping[0]] = read_memory(instruction.mapping[1]);	
+	
+	write_bit_to_memory(instruction.mapping[0], read_bit_from_address(instruction.mapping[1]));
+	
 	if(instruction.mapping[0]==OUT)printf("%d",memory[OUT]);
 }
 
@@ -153,7 +208,24 @@ void path_choice(){
 	];
 }
 
+int test_bit_array(){
+	int bits[] = {0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0};
+	int size = sizeof(bits)/sizeof(int);
+	int i;
+	for(i = 0; i<size; i++)
+		write_bit_to_memory(i, bits[i]);
+	
+	for(i = 0; i<size; i++)
+		if(read_bit_from_memory(i)!=bits[i])
+			return 0;
+	return 1;	
+}
+
 int main(int argc, char **argv) {
+	
+	assert(test_bit_array());
+	printf("test_bit_array(): %d\n", test_bit_array());
+	
 	printf(" ( ");
 	while(1){
 		if(current_op==EXIT) break;
