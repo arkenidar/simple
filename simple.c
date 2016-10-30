@@ -1,20 +1,38 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
+#include <stdint.h>
+
+#define DEBUG_USING_PRINTF 0
+
+#define INPUT_SYSTEM_WINDOWS 1
+#define INPUT_SYSTEM_UNIX 2
+
+#ifndef INPUT_SYSTEM
+
+#ifndef _WIN32
+#define INPUT_SYSTEM INPUT_SYSTEM_UNIX
+#endif
+
 #ifdef _WIN32
+#define INPUT_SYSTEM INPUT_SYSTEM_WINDOWS
+#endif
+
+#endif
+
+#if INPUT_SYSTEM == INPUT_SYSTEM_WINDOWS
 #include <conio.h>
 #endif
-#include <assert.h>
 
 #define SIMPLE_BIT_ACCESS 1
 #define BITWISE_OPS_BIT_ACCESS 2
-
 #define BIT_ACCESS_IN_USE BITWISE_OPS_BIT_ACCESS
 
 #if BIT_ACCESS_IN_USE == SIMPLE_BIT_ACCESS
-	typedef char bit_type;
+	typedef uint8_t bit_type;
 #endif
 #if BIT_ACCESS_IN_USE == BITWISE_OPS_BIT_ACCESS
-	typedef int bit_type;
+	typedef uint32_t bit_type;
 #endif
 
 bit_type memory[256] = {0};
@@ -89,10 +107,26 @@ instruction_type prog_nor[] =	{
 	{ {PATH_CHOOSER, IN}, {3, 3} }
 };
 
-// use "program selector" to select which program to run in the Machine
-instruction_type* prog_selector = prog_nor;
+// program: memory to output
+instruction_type prog_memory_out[] =	{
+	{ {10,	11}, {1, 1} },
+	{ {13,	14}, {2, 2} },
+	{ {OUT,	10}, {3, 3} },
+	{ {OUT,	11}, {4, 4} },
+	{ {OUT,	12}, {5, 5} },
+	{ {OUT,	13}, {6, 6} },
+	{ {OUT,	14}, {EXIT, EXIT} }
+};
 
-#ifndef _WIN32
+// use "program selector" to select which program to run in the Machine
+instruction_type* prog_selector = prog_memory_out;
+
+void debug_newline(){
+	if(DEBUG_USING_PRINTF)
+		printf("\n");
+}
+
+#if INPUT_SYSTEM == INPUT_SYSTEM_UNIX
 #include <unistd.h>
 #include <termios.h>
 char getch(){
@@ -119,13 +153,22 @@ char getch(){
 #endif
 
 int getbit(){
+	
+	printf(" in:");
+	
 	char ch;
-	#ifdef _WIN32
+	#if INPUT_SYSTEM == INPUT_SYSTEM_WINDOWS
 		ch = _getche();
-	#else
+	#endif
+	#if INPUT_SYSTEM == INPUT_SYSTEM_UNIX
 		ch = getch();
 	#endif
-	if (ch=='0' || ch=='1') return ch-'0';
+	if (ch=='0' || ch=='1'){
+		int bit = ch-'0';
+		if(DEBUG_USING_PRINTF)
+			printf("[getbit(): %d]", bit);
+		return bit;
+	}
 	else if (ch=='q'){
 		printf(" ) ");
 		exit(0);
@@ -137,9 +180,11 @@ int getbit(){
 #define ClearBit(data,y) data &= ~(1 << y) /** Clear Data.Y to 0   **/
 #define SetBit(data,y)   data |= (1 << y)  /** Set Data.Y to 1     **/
 
-#define bitArray_wordSize (sizeof(bit_type)*8);
-#define bitArray_wordIndex(bit_address) bit_address/bitArray_wordSize
-#define bitArray_bitIndex(bit_address)  bit_address%bitArray_wordSize
+#define bitArray_wordSize (sizeof(bit_type)*8)
+#define bitArray_wordIndex(bit_address) (bit_address/bitArray_wordSize)
+#define bitArray_bitIndex(bit_address)  (bit_address%bitArray_wordSize)
+//#define bitArray_wordIndex(bit_address) (bit_address>>bitArray_wordSize)
+//#define bitArray_bitIndex(bit_address)  (bit_address&&((1<<bitArray_wordSize)-1))
 
 void write_bit_to_memory(int write_to, int bit){
 
@@ -148,12 +193,16 @@ void write_bit_to_memory(int write_to, int bit){
 	#endif
 
 	#if BIT_ACCESS_IN_USE == BITWISE_OPS_BIT_ACCESS
-		
-		int data = bitArray_wordIndex(write_to);
+		if(DEBUG_USING_PRINTF)
+			printf("[write_btm(): %d]", bit);
+	
+		int x = bitArray_wordIndex(write_to);
 		int y = bitArray_bitIndex(write_to);
 		
-		if(bit==0)      ClearBit(memory[data],y);
-		else if(bit==1) SetBit(memory[data],y);
+		if(bit==0)
+			ClearBit(memory[x],y);
+		else if(bit==1)
+			SetBit(memory[x],y);
 	#endif
 }
 
@@ -165,10 +214,10 @@ int read_bit_from_memory(int read_from){
 
 	#if BIT_ACCESS_IN_USE == BITWISE_OPS_BIT_ACCESS
 		
-		int data = bitArray_wordIndex(read_from);
+		int x = memory[bitArray_wordIndex(read_from)];
 		int y = bitArray_bitIndex(read_from);
 		
-		value = BitVal(memory[data],y);
+		value = BitVal(x,y);
 	#endif
 
 	return value;
@@ -178,34 +227,42 @@ int read_bit_from_address(int read_from){
 	int value;
 	if(read_from==IN) {
 		 while( (value = getbit()) == -1 ){
-			printf(" !insert bit (type '0' or '1') or quit! (type 'q') ");
+			printf(" [insert bit (type '0' or '1') or quit (type 'q')!] ");
 		}
-		memory[IN] = value;
 	} else if(read_from==ZERO) {
 		value = 0;
-		memory[ZERO] = value;
 	} else if(read_from==ONE) {
 		value = 1;
-		memory[ONE] = value;
 	} else {
 		value = read_bit_from_memory(read_from);
 	}
+	
+	if(DEBUG_USING_PRINTF)
+		printf("[read_bfa(): %d]", value);
+	
 	return value;
+}
+
+void write_bit_to_address(int write_to, int bit){
+	write_bit_to_memory(write_to, bit);
+	
+	if(write_to==OUT){
+		if(DEBUG_USING_PRINTF)
+			printf("[out_wbta(): %d]", bit);
+		printf(" out:%d", bit);
+	}
 }
 
 void perform_operation(){
 	instruction_type instruction = prog_selector[current_op];
-	
-	write_bit_to_memory(instruction.mapping[0], read_bit_from_address(instruction.mapping[1]));
-	
-	if(instruction.mapping[0]==OUT)printf("%d",memory[OUT]);
+	int bit = read_bit_from_address(instruction.mapping[1]);
+	write_bit_to_address(instruction.mapping[0], bit);
 }
 
 void path_choice(){
 	instruction_type instruction = prog_selector[current_op];
-	current_op = instruction.paths[
-		(int) memory[PATH_CHOOSER]
-	];
+	int bit = read_bit_from_memory(PATH_CHOOSER);
+	current_op = instruction.paths[bit];
 }
 
 int test_bit_array(){
@@ -213,19 +270,28 @@ int test_bit_array(){
 	int size = sizeof(bits)/sizeof(int);
 	int i;
 	for(i = 0; i<size; i++)
-		write_bit_to_memory(i, bits[i]);
+		write_bit_to_memory(10+i, bits[i]);
+	
+	debug_newline();
 	
 	for(i = 0; i<size; i++)
-		if(read_bit_from_memory(i)!=bits[i])
+		if(read_bit_from_memory(10+i)!=bits[i])
 			return 0;
 	return 1;	
 }
 
 int main(int argc, char **argv) {
 	
-	assert(test_bit_array());
-	printf("test_bit_array(): %d\n", test_bit_array());
+	if(DEBUG_USING_PRINTF)
+		printf("- bitArray_wordSize: %d\n", (int)bitArray_wordSize);
 	
+	int bit_array_works = test_bit_array();
+	assert(bit_array_works); 
+	
+	if(DEBUG_USING_PRINTF)
+		printf("- test_bit_array(): %d\n", bit_array_works);
+	
+	///*
 	printf(" ( ");
 	while(1){
 		if(current_op==EXIT) break;
@@ -233,5 +299,6 @@ int main(int argc, char **argv) {
 		path_choice();
 	}
 	printf(" ) ");
+	//*/
 	return 0;
 }
