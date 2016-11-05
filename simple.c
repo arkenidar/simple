@@ -119,7 +119,7 @@ instruction_type prog_memory_out[] =	{
 };
 
 // use "program selector" to select which program to run in the Machine
-instruction_type* prog_selector = prog_memory_out;
+instruction_type* prog_selector = prog_nor;
 
 void debug_newline(){
 	if(DEBUG_USING_PRINTF)
@@ -164,13 +164,13 @@ int getbit(){
 		ch = getch();
 	#endif
 	if (ch=='0' || ch=='1'){
-		int bit = ch-'0';
+		int bit = ch=='0'?0:1; // '0' or '1'
 		if(DEBUG_USING_PRINTF)
 			printf("[getbit(): %d]", bit);
 		return bit;
 	}
 	else if (ch=='q'){
-		printf(" ) ");
+		printf(" } ");
 		exit(0);
 	}
 	else return -1;
@@ -291,14 +291,13 @@ int main(int argc, char **argv) {
 	if(DEBUG_USING_PRINTF)
 		printf("- test_bit_array(): %d\n", bit_array_works);
 	
-	///*
-	printf(" ( ");
+	printf(" { ");
 	while(1){
 		if(current_op==EXIT) break;
 		perform_operation();
 		path_choice();
 	}
-	printf(" ) ");
-	//*/
+	printf(" } ");
+
 	return 0;
 }
