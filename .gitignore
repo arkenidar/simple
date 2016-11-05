@@ -1,2 +1,7 @@
+#these filese are produced and are ignored in GIT
+
 *.exe
 *.o
+
+devcpp.layout
+Makefile.win
