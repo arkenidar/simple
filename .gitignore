@@ -5,3 +5,6 @@
 
 devcpp.layout
 Makefile.win
+
+*.depend
+simple
