@@ -1,10 +1,16 @@
 #these filese are produced and are ignored in GIT
 
+# windows binaries
 *.exe
 *.o
 
-devcpp.layout
-Makefile.win
+# dev c++ aux files
+*.layout
+*.win
 
+# codeblocks aux files
 *.depend
+*.layout
+
+# linux binary
 simple
