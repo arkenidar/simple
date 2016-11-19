@@ -38,9 +38,15 @@
 
 bit_type memory[256] = {0};
 
+// 8 bit data addressing (256 bits of data memory)
+typedef char memory_index_type;
+
+// 8 bit instruction addressing (256 instructions)
+typedef char instruction_index_type;
+
 typedef struct instruction_type_struct{
-	char mapping[2]; // 8 bit data addressing (256 bits of data memory)
-	char paths[2]; // 8 bit instruction addressing (256 instructions)
+	memory_index_type mapping[2];
+	instruction_index_type paths[2];
 } instruction_type;
 
 // reserved constants for mapping[0] or mapping[1]
@@ -52,7 +58,7 @@ typedef struct instruction_type_struct{
 
 // reserved constants for current_op, paths[0] or paths[1]
 #define EXIT -1
-long current_op = 0;
+instruction_index_type current_op = 0;
 
 // program: bit copy
 instruction_type prog_bitcopy[] =	{
@@ -180,10 +186,8 @@ int getbit(){
 #define bitArray_wordSize (sizeof(bit_type)*8)
 #define bitArray_wordIndex(bit_address) (bit_address/bitArray_wordSize)
 #define bitArray_bitIndex(bit_address)  (bit_address%bitArray_wordSize)
-//#define bitArray_wordIndex(bit_address) (bit_address>>bitArray_wordSize)
-//#define bitArray_bitIndex(bit_address)  (bit_address&&((1<<bitArray_wordSize)-1))
 
-void write_bit_to_memory(int write_to, int bit){
+void write_bit_to_memory(memory_index_type write_to, int bit){
 
 	#if BIT_ACCESS_IN_USE == SIMPLE_BIT_ACCESS
 		memory[write_to] = bit;
@@ -203,7 +207,7 @@ void write_bit_to_memory(int write_to, int bit){
 	#endif
 }
 
-int read_bit_from_memory(int read_from){
+int read_bit_from_memory(memory_index_type read_from){
 	int value;
 	#if BIT_ACCESS_IN_USE == SIMPLE_BIT_ACCESS
 		value = memory[read_from];
@@ -220,7 +224,7 @@ int read_bit_from_memory(int read_from){
 	return value;
 }
 
-int read_bit_from_address(int read_from){
+int read_bit_from_address(memory_index_type read_from){
 	int value;
 	if(read_from==IN) {
 		 while( (value = getbit()) == -1 ){
@@ -240,7 +244,7 @@ int read_bit_from_address(int read_from){
 	return value;
 }
 
-int write_bit_to_address(int write_to, int bit){
+int write_bit_to_address(memory_index_type write_to, int bit){
 	write_bit_to_memory(write_to, bit);
 	
 	if(write_to==OUT){
@@ -253,13 +257,13 @@ int write_bit_to_address(int write_to, int bit){
 }
 
 int perform_operation(){
-	instruction_type instruction = prog_selector[current_op];
+	instruction_type instruction = prog_selector[(long long)current_op];
 	int bit = read_bit_from_address(instruction.mapping[1]);
 	return write_bit_to_address(instruction.mapping[0], bit);
 }
 
 void path_choice(){
-	instruction_type instruction = prog_selector[current_op];
+	instruction_type instruction = prog_selector[(long long)current_op];
 	int selector_bit = read_bit_from_memory(PATH_CHOOSER);
 	current_op = instruction.paths[selector_bit];
 }
