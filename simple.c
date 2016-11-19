@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #define DEBUG_USING_PRINTF 0
+#define DEBUG2_USING_PRINTF 0
 
 #define INPUT_SYSTEM_WINDOWS 1
 #define INPUT_SYSTEM_UNIX 2
@@ -121,11 +122,6 @@ instruction_type prog_memory_out[] =	{
 // use "program selector" to select which program to run in the Machine
 instruction_type* prog_selector = prog_nor;
 
-void debug_newline(){
-	if(DEBUG_USING_PRINTF)
-		printf("\n");
-}
-
 #if INPUT_SYSTEM == INPUT_SYSTEM_UNIX
 #include <unistd.h>
 #include <termios.h>
@@ -154,7 +150,8 @@ char getch(){
 
 int getbit(){
 	
-	printf(" in:");
+	if(DEBUG_USING_PRINTF)
+		printf(" in:");
 	
 	char ch;
 	#if INPUT_SYSTEM == INPUT_SYSTEM_WINDOWS
@@ -165,7 +162,7 @@ int getbit(){
 	#endif
 	if (ch=='0' || ch=='1'){
 		int bit = ch=='0'?0:1; // '0' or '1'
-		if(DEBUG_USING_PRINTF)
+		if(DEBUG2_USING_PRINTF)
 			printf("[getbit(): %d]", bit);
 		return bit;
 	}
@@ -193,7 +190,7 @@ void write_bit_to_memory(int write_to, int bit){
 	#endif
 
 	#if BIT_ACCESS_IN_USE == BITWISE_OPS_BIT_ACCESS
-		if(DEBUG_USING_PRINTF)
+		if(DEBUG2_USING_PRINTF)
 			printf("[write_btm(): %d]", bit);
 	
 		int x = bitArray_wordIndex(write_to);
@@ -237,32 +234,34 @@ int read_bit_from_address(int read_from){
 		value = read_bit_from_memory(read_from);
 	}
 	
-	if(DEBUG_USING_PRINTF)
+	if(DEBUG2_USING_PRINTF)
 		printf("[read_bfa(): %d]", value);
 	
 	return value;
 }
 
-void write_bit_to_address(int write_to, int bit){
+int write_bit_to_address(int write_to, int bit){
 	write_bit_to_memory(write_to, bit);
 	
 	if(write_to==OUT){
 		if(DEBUG_USING_PRINTF)
-			printf("[out_wbta(): %d]", bit);
-		printf(" out:%d", bit);
+			printf(" out:%d", bit);
+		return bit;
+	}else{
+		return -1;
 	}
 }
 
-void perform_operation(){
+int perform_operation(){
 	instruction_type instruction = prog_selector[current_op];
 	int bit = read_bit_from_address(instruction.mapping[1]);
-	write_bit_to_address(instruction.mapping[0], bit);
+	return write_bit_to_address(instruction.mapping[0], bit);
 }
 
 void path_choice(){
 	instruction_type instruction = prog_selector[current_op];
-	int bit = read_bit_from_memory(PATH_CHOOSER);
-	current_op = instruction.paths[bit];
+	int selector_bit = read_bit_from_memory(PATH_CHOOSER);
+	current_op = instruction.paths[selector_bit];
 }
 
 int test_bit_array(){
@@ -272,7 +271,8 @@ int test_bit_array(){
 	for(i = 0; i<size; i++)
 		write_bit_to_memory(10+i, bits[i]);
 	
-	debug_newline();
+	if(DEBUG2_USING_PRINTF)
+		printf("\n");
 	
 	for(i = 0; i<size; i++)
 		if(read_bit_from_memory(10+i)!=bits[i])
@@ -282,19 +282,20 @@ int test_bit_array(){
 
 int main(int argc, char **argv) {
 	
-	if(DEBUG_USING_PRINTF)
+	if(DEBUG2_USING_PRINTF)
 		printf("- bitArray_wordSize: %d\n", (int)bitArray_wordSize);
 	
 	int bit_array_works = test_bit_array();
 	assert(bit_array_works); 
 	
-	if(DEBUG_USING_PRINTF)
+	if(DEBUG2_USING_PRINTF)
 		printf("- test_bit_array(): %d\n", bit_array_works);
 	
 	printf(" { ");
 	while(1){
 		if(current_op==EXIT) break;
-		perform_operation();
+		int out = perform_operation();
+		if(-1 != out && !DEBUG_USING_PRINTF) printf("%d", out);
 		path_choice();
 	}
 	printf(" } ");
