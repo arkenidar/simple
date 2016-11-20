@@ -49,6 +49,8 @@ typedef struct instruction_type_struct{
 	instruction_index_type paths[2];
 } instruction_type;
 
+#define TRUE 1
+
 // reserved constants for mapping[0] or mapping[1]
 #define PATH_CHOOSER 0
 #define OUT 1
@@ -154,6 +156,9 @@ char getch(){
  }
 #endif
 
+#define INVALID_BIT_INPUT -1
+#define QUIT_SIGNAL_INPUT -2
+
 int getbit(){
 	
 	if(DEBUG_USING_PRINTF)
@@ -173,10 +178,9 @@ int getbit(){
 		return bit;
 	}
 	else if (ch=='q'){
-		printf(" } ");
-		exit(0);
+		return QUIT_SIGNAL_INPUT;
 	}
-	else return -1;
+	else return INVALID_BIT_INPUT;
 }
 
 #define BitVal(data,y)   ( (data>>y) & 1)  /** Return Data.Y value **/
@@ -227,8 +231,13 @@ int read_bit_from_memory(memory_index_type read_from){
 int read_bit_from_address(memory_index_type read_from){
 	int value;
 	if(read_from==IN) {
-		 while( (value = getbit()) == -1 ){
-			printf(" [insert bit (type '0' or '1') or quit (type 'q')!] ");
+		while(TRUE){
+			value = getbit();
+			if(value == INVALID_BIT_INPUT){
+				printf(" [insert bit (type '0' or '1') or quit (type 'q')!] ");
+			} else if(value == QUIT_SIGNAL_INPUT){
+				return QUIT_SIGNAL_INPUT;
+			} else break;
 		}
 	} else if(read_from==ZERO) {
 		value = 0;
@@ -259,7 +268,9 @@ int write_bit_to_address(memory_index_type write_to, int bit){
 int perform_operation(){
 	instruction_type instruction = prog_selector[(long long)current_op];
 	int bit = read_bit_from_address(instruction.mapping[1]);
-	return write_bit_to_address(instruction.mapping[0], bit);
+	if(bit==QUIT_SIGNAL_INPUT) return QUIT_SIGNAL_INPUT;
+	else
+		return write_bit_to_address(instruction.mapping[0], bit);
 }
 
 void path_choice(){
@@ -284,6 +295,25 @@ int test_bit_array(){
 	return 1;	
 }
 
+void run_program(){
+	printf(" { ");
+	current_op = 0;
+	while(TRUE){
+		if(current_op==EXIT){
+			printf("@EXIT");
+			break;
+		}
+		int out = perform_operation();
+		if(out == QUIT_SIGNAL_INPUT){
+			printf("@QUIT_SIGNAL_INPUT");
+			break;
+		}
+		if(-1 != out && !DEBUG_USING_PRINTF) printf("%d", out);
+		path_choice();
+	}
+	printf(" } \n");
+}
+
 int main(int argc, char **argv) {
 	
 	if(DEBUG2_USING_PRINTF)
@@ -295,14 +325,9 @@ int main(int argc, char **argv) {
 	if(DEBUG2_USING_PRINTF)
 		printf("- test_bit_array(): %d\n", bit_array_works);
 	
-	printf(" { ");
-	while(1){
-		if(current_op==EXIT) break;
-		int out = perform_operation();
-		if(-1 != out && !DEBUG_USING_PRINTF) printf("%d", out);
-		path_choice();
-	}
-	printf(" } ");
+	run_program();
+	run_program();
+	run_program();
 
 	return 0;
 }
