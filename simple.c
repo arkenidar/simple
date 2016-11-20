@@ -295,7 +295,8 @@ int test_bit_array(){
 	return 1;	
 }
 
-void run_program(){
+void run_program(instruction_type* run_this){
+	prog_selector = run_this;
 	printf(" { ");
 	current_op = 0;
 	while(TRUE){
@@ -329,9 +330,9 @@ int main(int argc, char **argv) {
 	
 	bootstrap_tests();
 	
-	run_program();
-	run_program();
-	run_program();
+	run_program(prog_bitcopy);
+	run_program(prog_not);
+	run_program(prog_memory_out);
 
 	return 0;
 }
