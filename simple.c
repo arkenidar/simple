@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stdint.h>
 
-#define DEBUG_USING_PRINTF 0
+#define DEBUG_USING_PRINTF 1
 #define DEBUG2_USING_PRINTF 0
 
 #define INPUT_SYSTEM_WINDOWS 1
@@ -314,8 +314,7 @@ void run_program(){
 	printf(" } \n");
 }
 
-int main(int argc, char **argv) {
-	
+void bootstrap_tests(){
 	if(DEBUG2_USING_PRINTF)
 		printf("- bitArray_wordSize: %d\n", (int)bitArray_wordSize);
 	
@@ -324,6 +323,11 @@ int main(int argc, char **argv) {
 	
 	if(DEBUG2_USING_PRINTF)
 		printf("- test_bit_array(): %d\n", bit_array_works);
+}
+
+int main(int argc, char **argv) {
+	
+	bootstrap_tests();
 	
 	run_program();
 	run_program();
