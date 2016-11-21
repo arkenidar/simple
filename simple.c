@@ -2,9 +2,14 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <stdint.h>
+#include <string.h> // for memset
 
-#define DEBUG_USING_PRINTF 1
-#define DEBUG2_USING_PRINTF 0
+#define FALSE 0
+#define TRUE 1
+#define SKIP_INPUT_REQUEST TRUE
+
+#define DEBUG_USING_PRINTF TRUE
+#define DEBUG2_USING_PRINTF FALSE
 
 #define INPUT_SYSTEM_WINDOWS 1
 #define INPUT_SYSTEM_UNIX 2
@@ -49,8 +54,6 @@ typedef struct instruction_type_struct{
 	instruction_index_type paths[2];
 } instruction_type;
 
-#define TRUE 1
-
 // reserved constants for mapping[0] or mapping[1]
 #define PATH_CHOOSER 0
 #define OUT 1
@@ -58,9 +61,12 @@ typedef struct instruction_type_struct{
 #define ZERO 3
 #define ONE 4
 
-// reserved constants for current_op, paths[0] or paths[1]
-#define EXIT -1
-instruction_index_type current_op = 0;
+// reserved constants for instruction index (cur_instruction, paths[0], paths[1], etc.)
+#define PROGRAM_START_INDEX 0
+#define EXIT_INDEX -1
+instruction_index_type cur_instruction = PROGRAM_START_INDEX;
+
+// *********************************************************
 
 // program: bit copy
 instruction_type prog_bitcopy[] =	{
@@ -70,7 +76,7 @@ instruction_type prog_bitcopy[] =	{
 // program: bit copy with exit or repeat
 instruction_type prog_bitcopy_exit[] =	{
 	{ {OUT, IN}, {1,1} },
-	{ {PATH_CHOOSER, IN}, {0, EXIT} }
+	{ {PATH_CHOOSER, IN}, {0, EXIT_INDEX} }
 };
 
 // program: NOT gate emulation
@@ -124,8 +130,10 @@ instruction_type prog_memory_out[] =	{
 	{ {OUT,	11}, {4, 4} },
 	{ {OUT,	12}, {5, 5} },
 	{ {OUT,	13}, {6, 6} },
-	{ {OUT,	14}, {EXIT, EXIT} }
+	{ {OUT,	14}, {EXIT_INDEX, EXIT_INDEX} }
 };
+
+// *********************************************************
 
 // use "program selector" to select which program to run in the Machine
 instruction_type* prog_selector = prog_nor;
@@ -156,14 +164,12 @@ char getch(){
  }
 #endif
 
-#define INVALID_BIT_INPUT -1
-#define QUIT_SIGNAL_INPUT -2
+#define INVALID_BIT -1
+#define QUIT_SIGNAL -2
 
-int getbit(){
-	
-	if(DEBUG_USING_PRINTF)
-		printf(" in:");
-	
+#define PAUSE() get_char()
+
+char get_char(){
 	char ch;
 	#if INPUT_SYSTEM == INPUT_SYSTEM_WINDOWS
 		ch = _getche();
@@ -171,6 +177,16 @@ int getbit(){
 	#if INPUT_SYSTEM == INPUT_SYSTEM_UNIX
 		ch = getch();
 	#endif
+	return ch;
+}
+
+int getbit(){
+	
+	if(DEBUG_USING_PRINTF)
+		printf(" in:");
+	
+	char ch = get_char();
+	
 	if (ch=='0' || ch=='1'){
 		int bit = ch=='0'?0:1; // '0' or '1'
 		if(DEBUG2_USING_PRINTF)
@@ -178,9 +194,9 @@ int getbit(){
 		return bit;
 	}
 	else if (ch=='q'){
-		return QUIT_SIGNAL_INPUT;
+		return QUIT_SIGNAL;
 	}
-	else return INVALID_BIT_INPUT;
+	else return INVALID_BIT;
 }
 
 #define BitVal(data,y)   ( (data>>y) & 1)  /** Return Data.Y value **/
@@ -231,12 +247,16 @@ int read_bit_from_memory(memory_index_type read_from){
 int read_bit_from_address(memory_index_type read_from){
 	int value;
 	if(read_from==IN) {
+		if(TRUE == SKIP_INPUT_REQUEST){
+			//printf(" @skipped");
+			return 0;
+		}else
 		while(TRUE){
 			value = getbit();
-			if(value == INVALID_BIT_INPUT){
+			if(value == INVALID_BIT){
 				printf(" [insert bit (type '0' or '1') or quit (type 'q')!] ");
-			} else if(value == QUIT_SIGNAL_INPUT){
-				return QUIT_SIGNAL_INPUT;
+			} else if(value == QUIT_SIGNAL){
+				return QUIT_SIGNAL;
 			} else break;
 		}
 	} else if(read_from==ZERO) {
@@ -261,22 +281,22 @@ int write_bit_to_address(memory_index_type write_to, int bit){
 			printf(" out:%d", bit);
 		return bit;
 	}else{
-		return -1;
+		return INVALID_BIT;
 	}
 }
 
 int perform_operation(){
-	instruction_type instruction = prog_selector[(long long)current_op];
+	instruction_type instruction = prog_selector[(long long)cur_instruction];
 	int bit = read_bit_from_address(instruction.mapping[1]);
-	if(bit==QUIT_SIGNAL_INPUT) return QUIT_SIGNAL_INPUT;
+	if(bit==QUIT_SIGNAL) return QUIT_SIGNAL;
 	else
 		return write_bit_to_address(instruction.mapping[0], bit);
 }
 
 void path_choice(){
-	instruction_type instruction = prog_selector[(long long)current_op];
+	instruction_type instruction = prog_selector[(long long)cur_instruction];
 	int selector_bit = read_bit_from_memory(PATH_CHOOSER);
-	current_op = instruction.paths[selector_bit];
+	cur_instruction = instruction.paths[selector_bit];
 }
 
 int test_bit_array(){
@@ -295,24 +315,44 @@ int test_bit_array(){
 	return 1;	
 }
 
-void run_program(instruction_type* run_this){
+#define STEPS_LIMIT 10
+
+int run_program(instruction_type* run_this){
 	prog_selector = run_this;
+	
 	printf(" { ");
-	current_op = 0;
+	
+	int cycle_counter = 0;
+	int output_counter = 0;
+	
+	cur_instruction = PROGRAM_START_INDEX;
 	while(TRUE){
-		if(current_op==EXIT){
-			printf("@EXIT");
+		if(cur_instruction==EXIT_INDEX){
+			printf(" @EXIT_INDEX");
 			break;
 		}
+	
 		int out = perform_operation();
-		if(out == QUIT_SIGNAL_INPUT){
-			printf("@QUIT_SIGNAL_INPUT");
+	
+		if(out == QUIT_SIGNAL){
+			printf(" @QUIT_SIGNAL");
 			break;
 		}
-		if(-1 != out && !DEBUG_USING_PRINTF) printf("%d", out);
+	
+		if(-1 != out){
+			output_counter++;
+			if(FALSE == DEBUG_USING_PRINTF)
+				printf("%d", out);
+		}
+	
 		path_choice();
+		
+		cycle_counter++; if(cycle_counter>=STEPS_LIMIT) break;
 	}
+	
 	printf(" } \n");
+	
+	return output_counter;
 }
 
 void bootstrap_tests(){
@@ -326,13 +366,127 @@ void bootstrap_tests(){
 		printf("- test_bit_array(): %d\n", bit_array_works);
 }
 
-int main(int argc, char **argv) {
-	
-	bootstrap_tests();
-	
+void multiple_programs_executed_sequentially(){
 	run_program(prog_bitcopy);
 	run_program(prog_not);
 	run_program(prog_memory_out);
+}
 
+#define MODULO_MAX 4//16
+#define MODULO_INCREMENT(expr, max)  expr=(expr+1)%max;
+
+#define FIELD_1 mapping[0]
+#define FIELD_2 mapping[1]
+#define FIELD_3 paths[0]
+#define FIELD_4 paths[1]
+
+void print_instruction(instruction_type* instruction){
+	printf("(%d,%d,%d,%d) ",
+	instruction->FIELD_1,
+	instruction->FIELD_2,
+	instruction->FIELD_3,
+	instruction->FIELD_4);
+}
+
+void print_program(instruction_type program[], const int size){
+	for(int i=0; i<size; i++)
+		print_instruction(&program[i]);
+	printf("\n");
+}
+
+int increment_instruction(instruction_type* instruction){
+	
+	MODULO_INCREMENT(instruction->FIELD_1, MODULO_MAX)
+	if(0 == instruction->FIELD_1) {
+			
+		MODULO_INCREMENT(instruction->FIELD_2, MODULO_MAX)
+		if(0 == instruction->FIELD_2){
+			
+			MODULO_INCREMENT(instruction->FIELD_3, MODULO_MAX)
+			if(0 == instruction->FIELD_3) {
+				
+				MODULO_INCREMENT(instruction->FIELD_4, MODULO_MAX)
+				if(0 == instruction->FIELD_4){
+
+					return TRUE; // overflow, full iteration cycle
+				}
+			}
+
+		}	
+	}
+	return FALSE;
+}
+
+int next_program(instruction_type program[], const int size){
+
+	int instruction_index = 0; // instruction index
+	int overflow;
+	
+	while(TRUE){
+		overflow = increment_instruction(&program[instruction_index]);
+		
+		if(overflow){
+			instruction_index++;
+
+			if(size <= instruction_index){
+				overflow = TRUE; // full iteration completed
+				return overflow;
+			}
+		}else{
+			overflow = FALSE; // full iteration not completed
+			return overflow;	
+		}
+	}
+}
+
+void reset_memory(){
+	const int memory_size = sizeof(memory)/sizeof(bit_type);
+	// set all memory to zero
+	memset(memory, 0, memory_size);
+}
+
+int iterate_programs(){
+	
+	// program
+	instruction_type* current_program;
+	const int program_size = 2;
+	current_program = (instruction_type*) malloc(sizeof(instruction_type)*program_size);
+
+	// stats
+	int count_programs = 0;
+	int max_oc = -1;
+	
+	while(TRUE){ // iterate programs
+		
+		// run program
+		print_program(current_program, program_size);
+		reset_memory();
+		int output_counter = run_program(current_program);
+		
+		// output stats
+		printf(" (OC:%d)\n", output_counter);
+				
+		if(output_counter>max_oc){
+			max_oc = output_counter;
+		}
+		
+		count_programs++; // count programs
+
+		if(TRUE == next_program(current_program, program_size)){				
+			break; // iteration completed
+		}
+	}
+	
+	printf("(count_programs:%d)", count_programs);
+	
+	return max_oc;
+}
+
+int main(int argc, char **argv) {
+	//multiple_programs_executed_sequentially();
+	
+	const int max_oc = iterate_programs();
+	printf(" (maxOC:%d)", max_oc);
+	
 	return 0;
 }
