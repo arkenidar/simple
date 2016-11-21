@@ -54,14 +54,14 @@ typedef struct instruction_type_struct{
 	instruction_index_type paths[2];
 } instruction_type;
 
-// reserved constants for mapping[0] or mapping[1]
+// reserved constants for memory address (e.g. mapping[0] or mapping[1])
 #define PATH_CHOOSER 0
 #define OUT 1
-#define IN 2
-#define ZERO 3
-#define ONE 4
+#define ZERO 2
+#define ONE 3
+#define IN 4
 
-// reserved constants for instruction index (cur_instruction, paths[0], paths[1], etc.)
+// reserved constants for instruction index (e.g. cur_instruction, paths[0], paths[1], etc.)
 #define PROGRAM_START_INDEX 0
 #define EXIT_INDEX -1
 instruction_index_type cur_instruction = PROGRAM_START_INDEX;
@@ -131,6 +131,13 @@ instruction_type prog_memory_out[] =	{
 	{ {OUT,	12}, {5, 5} },
 	{ {OUT,	13}, {6, 6} },
 	{ {OUT,	14}, {EXIT_INDEX, EXIT_INDEX} }
+};
+
+// program: output compare test
+instruction_type prog_compare_test[] =	{
+	{ {OUT,	ZERO}, {1, 1} },
+	{ {OUT,	ONE}, {2, 2} },
+	{ {OUT,	ZERO}, {EXIT_INDEX, EXIT_INDEX} }
 };
 
 // *********************************************************
@@ -318,29 +325,59 @@ int test_bit_array(){
 #define STEPS_LIMIT 10
 
 int run_program(instruction_type* run_this){
+	const char* reference_output = "010"; // can be set to NULL to disable
+
 	prog_selector = run_this;
+	
+	int pause = FALSE;
 	
 	printf(" { ");
 	
+	// counters for stats
 	int cycle_counter = 0;
 	int output_counter = 0;
 	
 	cur_instruction = PROGRAM_START_INDEX;
+	const char * reference_output_cur = reference_output;
 	while(TRUE){
 		if(cur_instruction==EXIT_INDEX){
 			printf(" @EXIT_INDEX");
 			break;
 		}
 	
-		int out = perform_operation();
+		const int out = perform_operation();
 	
 		if(out == QUIT_SIGNAL){
 			printf(" @QUIT_SIGNAL");
 			break;
 		}
 	
-		if(-1 != out){
-			output_counter++;
+		if(out!=INVALID_BIT){
+			
+			// there is output
+			
+			if(reference_output!=NULL){
+				const char cur = *reference_output_cur;
+				
+				const int cur_bit = cur-'0';
+				assert(cur_bit==0 || cur_bit==1);
+				
+				if(out==cur_bit){
+				
+					output_counter++;
+					reference_output_cur++;
+					if(*reference_output_cur=='\0'){
+						pause = TRUE;
+						break;
+					}
+				
+				}else{
+					break;
+				}
+			}else{
+				output_counter++;			
+			}
+			
 			if(FALSE == DEBUG_USING_PRINTF)
 				printf("%d", out);
 		}
@@ -351,6 +388,9 @@ int run_program(instruction_type* run_this){
 	}
 	
 	printf(" } \n");
+	
+	if(pause == TRUE)
+		PAUSE();
 	
 	return output_counter;
 }
@@ -449,7 +489,7 @@ int iterate_programs(){
 	
 	// program
 	instruction_type* current_program;
-	const int program_size = 2;
+	const int program_size = 4;
 	current_program = (instruction_type*) malloc(sizeof(instruction_type)*program_size);
 
 	// stats
@@ -486,7 +526,10 @@ int main(int argc, char **argv) {
 	//multiple_programs_executed_sequentially();
 	
 	const int max_oc = iterate_programs();
-	printf(" (maxOC:%d)", max_oc);
+	
+	//printf("(out stats:%d)", run_program(prog_compare_test));
+	
+	printf(" (maxOutC:%d)", max_oc);
 	
 	return 0;
 }
