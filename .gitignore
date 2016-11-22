@@ -4,16 +4,15 @@
 *.exe
 *.o
 
-# dev c++ aux files
-*.layout
+# devc++ aux files
 *.win
 
 # codeblocks aux files
 *.depend
+# also used by devc++
 *.layout
 
 # linux binary
 simple
 
-#added by clion ide
-/iprog.txt
+*.log.txt

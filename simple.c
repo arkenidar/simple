@@ -489,8 +489,8 @@ int iterate_programs(){
 	
 	// program
 	instruction_type* current_program;
-	const int program_size = 4;
-	current_program = (instruction_type*) malloc(sizeof(instruction_type)*program_size);
+	const int PROGRAM_SIZE = 4;
+	current_program = (instruction_type*) malloc(sizeof(instruction_type)*PROGRAM_SIZE);
 
 	// stats
 	int count_programs = 0;
@@ -500,7 +500,7 @@ int iterate_programs(){
 		
 		// - run program
 		
-		print_program(current_program, program_size);
+		print_program(current_program, PROGRAM_SIZE);
 		
 		reset_memory();
 		int output_counter = run_program(current_program);
@@ -514,7 +514,7 @@ int iterate_programs(){
 		
 		count_programs++; // count programs
 
-		if(TRUE == next_program(current_program, program_size)){				
+		if(TRUE == next_program(current_program, PROGRAM_SIZE)){
 			break; // iteration completed
 		}
 	}
@@ -535,7 +535,7 @@ void reset_memory2(char memory[], int memory_size){
 	memset(memory, 0, memory_size);
 }
 
-int run_program2(char memory_in[], int size){ // program_size
+int run_program2(char memory_in[], int size){ // PROGRAM_SIZE
 	
 	char* memory = (char*) malloc(sizeof(char)*size);
 	memcpy(memory, memory_in, sizeof(char)*size);
@@ -551,13 +551,10 @@ int run_program2(char memory_in[], int size){ // program_size
 	while(1){
 		char delta = memory[i];
 		if(delta == 0){
-			
+			delta = 1;
+
 			const int out = memory[(i+1)%size] &1;
-			
-			printf(" %d ", out);
-			
 			// there is output
-			
 			if(target_output!=NULL){
 				const char cur = *target_output_cur;
 				
@@ -578,8 +575,10 @@ int run_program2(char memory_in[], int size){ // program_size
 			}else{
 				output_counter++;			
 			}
-			
-			delta = 1;
+
+			// print output
+			printf(" %d ", out);
+
 		}else{
 			memory[i] = (memory[i]+memory[(i+1)%size]) %imodulo;
 		}
@@ -601,7 +600,7 @@ int increment_instruction2(char* instruction){
 	return *instruction==0;
 }
 
-int next_program2(char program[], const int program_size){
+int next_program2(char program[], const int PROGRAM_SIZE){
 
 	int instruction_index = 0; // instruction index
 	int overflow;
@@ -612,7 +611,7 @@ int next_program2(char program[], const int program_size){
 		if(TRUE == overflow){
 			instruction_index++;
 
-			if(program_size <= instruction_index){
+			if(PROGRAM_SIZE <= instruction_index){
 				overflow = TRUE; // full iteration completed
 				break;
 			}
@@ -625,8 +624,8 @@ int next_program2(char program[], const int program_size){
 	return overflow;
 }
 
-void print_program2(char current_program[], int program_size, FILE* file){
-	for(int i=0; i<program_size; i++)
+void print_program2(char current_program[], const int PROGRAM_SIZE, FILE* file){
+	for(int i=0; i<PROGRAM_SIZE; i++)
 		fprintf(file, " %d ", current_program[i]);
 	fprintf(file, "\n");
 }
@@ -634,11 +633,11 @@ void print_program2(char current_program[], int program_size, FILE* file){
 
 int iterate_programs2(){
 	
-	FILE* fp = fopen("iprog.txt", "w+");
+	FILE* logger = fopen("executions.log.txt", "a+");
 	
 	// program
 	char* current_program;
-	const int PROGRAM_SIZE = 50;
+	const int PROGRAM_SIZE = 10;
 	current_program = (char*) malloc(sizeof(char)*PROGRAM_SIZE);
 
 	// stats
@@ -669,15 +668,15 @@ int iterate_programs2(){
 			// - log
 			
 			// log program
-			print_program2(current_program, PROGRAM_SIZE, fp);
+			print_program2(current_program, PROGRAM_SIZE, logger);
 			
 			// log output
 			for(int i=0; i<max_oc; i++){
-				fprintf(fp, "%c", target_output[i]);
+				fprintf(logger, "%c", target_output[i]);
 			}
-			fprintf(fp, "\n");
+			fprintf(logger, "\n");
 			
-			fflush(fp);
+			fflush(logger);
 			
 			// - reset and PAUSE
 			char reset = 'd';
