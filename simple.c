@@ -325,7 +325,7 @@ int test_bit_array(){
 #define STEPS_LIMIT 10
 
 int run_program(instruction_type* run_this){
-	const char* reference_output = "010"; // can be set to NULL to disable
+	const char* target_output = "010"; // can be set to NULL to disable
 
 	prog_selector = run_this;
 	
@@ -338,7 +338,7 @@ int run_program(instruction_type* run_this){
 	int output_counter = 0;
 	
 	cur_instruction = PROGRAM_START_INDEX;
-	const char * reference_output_cur = reference_output;
+	const char * target_output_cur = target_output;
 	while(TRUE){
 		if(cur_instruction==EXIT_INDEX){
 			printf(" @EXIT_INDEX");
@@ -356,8 +356,8 @@ int run_program(instruction_type* run_this){
 			
 			// there is output
 			
-			if(reference_output!=NULL){
-				const char cur = *reference_output_cur;
+			if(target_output!=NULL){
+				const char cur = *target_output_cur;
 				
 				const int cur_bit = cur-'0';
 				assert(cur_bit==0 || cur_bit==1);
@@ -365,8 +365,8 @@ int run_program(instruction_type* run_this){
 				if(out==cur_bit){
 				
 					output_counter++;
-					reference_output_cur++;
-					if(*reference_output_cur=='\0'){
+					target_output_cur++;
+					if(*target_output_cur=='\0'){
 						pause = TRUE;
 						break;
 					}
@@ -498,8 +498,10 @@ int iterate_programs(){
 	
 	while(TRUE){ // iterate programs
 		
-		// run program
+		// - run program
+		
 		print_program(current_program, program_size);
+		
 		reset_memory();
 		int output_counter = run_program(current_program);
 		
@@ -522,22 +524,23 @@ int iterate_programs(){
 	return max_oc;
 }
 
-//------------------------------------------------------
+// ------------------------------------------------------
+//  ---------------- SIMPLE 2 --------------------------
 
-const char* reference_output = "010"; // can be set to NULL to disable
-const int imodulo = 16;
+const char* target_output = "0101101110001000"; // can be set to NULL to disable
+const int imodulo = 8; // 256, 16, 2
 
 void reset_memory2(char memory[], int memory_size){
 	// set all memory to zero
 	memset(memory, 0, memory_size);
 }
 
-int run_program2(char memory_in[], int size){
+int run_program2(char memory_in[], int size){ // program_size
 	
 	char* memory = (char*) malloc(sizeof(char)*size);
 	memcpy(memory, memory_in, sizeof(char)*size);
 	
-	const char * reference_output_cur = reference_output;
+	const char * target_output_cur = target_output;
 	
 	int output_counter = 0;
 	
@@ -549,14 +552,14 @@ int run_program2(char memory_in[], int size){
 		char delta = memory[i];
 		if(delta == 0){
 			
-			const int out = memory[(i+1)%size];
+			const int out = memory[(i+1)%size] &1;
 			
 			printf(" %d ", out);
 			
 			// there is output
 			
-			if(reference_output!=NULL){
-				const char cur = *reference_output_cur;
+			if(target_output!=NULL){
+				const char cur = *target_output_cur;
 				
 				const int cur_bit = cur-'0';
 				assert(cur_bit==0 || cur_bit==1);
@@ -564,8 +567,8 @@ int run_program2(char memory_in[], int size){
 				if(out==cur_bit){
 				
 					output_counter++;
-					reference_output_cur++;
-					if(*reference_output_cur=='\0'){
+					target_output_cur++;
+					if(*target_output_cur=='\0'){
 						break;
 					}
 				
@@ -581,9 +584,12 @@ int run_program2(char memory_in[], int size){
 			memory[i] = (memory[i]+memory[(i+1)%size]) %imodulo;
 		}
 		
+		delta -= imodulo/2; // forward and backward
+		
 		i = (i+delta) %size;
 		
-		steps++; if(steps>=10) break;
+		const int max_steps = 10;
+		steps++; if(steps>=max_steps){ printf(" @max_steps"); break; }
 	}
 	
 	return output_counter;
@@ -619,19 +625,21 @@ int next_program2(char program[], const int program_size){
 	return overflow;
 }
 
-void print_program2(char current_program[], int program_size){
+void print_program2(char current_program[], int program_size, FILE* file){
 	for(int i=0; i<program_size; i++)
-		printf(" %d ", current_program[i]);
-	printf("\n");
+		fprintf(file, " %d ", current_program[i]);
+	fprintf(file, "\n");
 }
 
 
 int iterate_programs2(){
 	
+	FILE* fp = fopen("iprog.txt", "w+");
+	
 	// program
 	char* current_program;
-	const int program_size = 4;
-	current_program = (char*) malloc(sizeof(char)*program_size);
+	const int PROGRAM_SIZE = 50;
+	current_program = (char*) malloc(sizeof(char)*PROGRAM_SIZE);
 
 	// stats
 	int count_programs = 0;
@@ -639,25 +647,47 @@ int iterate_programs2(){
 	
 	while(TRUE){ // iterate programs
 		
-		// run program
-		print_program2(current_program, program_size);
+		// - run program
+		
+		print_program2(current_program, PROGRAM_SIZE, stdout);
+		
 		int output_counter = -1;
-		output_counter = run_program2(current_program, program_size);
+		output_counter = run_program2(current_program, PROGRAM_SIZE);
 		
 		// output stats
 		printf(" (OC:%d)\n", output_counter);
 		
 		// pause
-		//const int string_size = strlen(reference_output);
-		//if(output_counter==string_size) PAUSE();
+		const int string_size = strlen(target_output);
+		if(string_size-output_counter<=3) PAUSE();
 				
 		if(output_counter>max_oc){
+			
+			// new max_oc value
 			max_oc = output_counter;
+			
+			// - log
+			
+			// log program
+			print_program2(current_program, PROGRAM_SIZE, fp);
+			
+			// log output
+			for(int i=0; i<max_oc; i++){
+				fprintf(fp, "%c", target_output[i]);
+			}
+			fprintf(fp, "\n");
+			
+			fflush(fp);
+			
+			// - reset and PAUSE
+			char reset = 'd';
+			reset = PAUSE();
+			if(reset=='r') max_oc=0;
 		}
 		
 		count_programs++; // count programs
 
-		if(TRUE == next_program2(current_program, program_size)){				
+		if(TRUE == next_program2(current_program, PROGRAM_SIZE)){				
 			break; // iteration completed
 		}
 	}
