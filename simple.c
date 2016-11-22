@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include <string.h> // for memset
 
-#define FALSE 0
-#define TRUE 1
+const int FALSE = (0==1);
+const int TRUE  = (0==0);
 #define SKIP_INPUT_REQUEST TRUE
 
 #define DEBUG_USING_PRINTF TRUE
@@ -389,8 +389,7 @@ int run_program(instruction_type* run_this){
 	
 	printf(" } \n");
 	
-	if(pause == TRUE)
-		PAUSE();
+	if(pause == TRUE) PAUSE();
 	
 	return output_counter;
 }
@@ -470,13 +469,14 @@ int next_program(instruction_type program[], const int size){
 
 			if(size <= instruction_index){
 				overflow = TRUE; // full iteration completed
-				return overflow;
+				break;
 			}
 		}else{
 			overflow = FALSE; // full iteration not completed
-			return overflow;	
+			break;
 		}
 	}
+	return overflow;
 }
 
 void reset_memory(){
@@ -522,10 +522,157 @@ int iterate_programs(){
 	return max_oc;
 }
 
+//------------------------------------------------------
+
+const char* reference_output = "010"; // can be set to NULL to disable
+const int imodulo = 16;
+
+void reset_memory2(char memory[], int memory_size){
+	// set all memory to zero
+	memset(memory, 0, memory_size);
+}
+
+int run_program2(char memory_in[], int size){
+	
+	char* memory = (char*) malloc(sizeof(char)*size);
+	memcpy(memory, memory_in, sizeof(char)*size);
+	
+	const char * reference_output_cur = reference_output;
+	
+	int output_counter = 0;
+	
+	int i=0;
+	
+	int steps = 0;
+	
+	while(1){
+		char delta = memory[i];
+		if(delta == 0){
+			
+			const int out = memory[(i+1)%size];
+			
+			printf(" %d ", out);
+			
+			// there is output
+			
+			if(reference_output!=NULL){
+				const char cur = *reference_output_cur;
+				
+				const int cur_bit = cur-'0';
+				assert(cur_bit==0 || cur_bit==1);
+				
+				if(out==cur_bit){
+				
+					output_counter++;
+					reference_output_cur++;
+					if(*reference_output_cur=='\0'){
+						break;
+					}
+				
+				}else{
+					break;
+				}
+			}else{
+				output_counter++;			
+			}
+			
+			delta = 1;
+		}else{
+			memory[i] = (memory[i]+memory[(i+1)%size]) %imodulo;
+		}
+		
+		i = (i+delta) %size;
+		
+		steps++; if(steps>=10) break;
+	}
+	
+	return output_counter;
+	
+}
+
+int increment_instruction2(char* instruction){
+	*instruction = (*instruction + 1) %imodulo;
+	return *instruction==0;
+}
+
+int next_program2(char program[], const int program_size){
+
+	int instruction_index = 0; // instruction index
+	int overflow;
+	
+	while(TRUE){
+		overflow = increment_instruction2(&program[instruction_index]);
+		
+		if(TRUE == overflow){
+			instruction_index++;
+
+			if(program_size <= instruction_index){
+				overflow = TRUE; // full iteration completed
+				break;
+			}
+		}else{
+			overflow = FALSE; // full iteration not completed
+			break;	
+		}
+	}
+	
+	return overflow;
+}
+
+void print_program2(char current_program[], int program_size){
+	for(int i=0; i<program_size; i++)
+		printf(" %d ", current_program[i]);
+	printf("\n");
+}
+
+
+int iterate_programs2(){
+	
+	// program
+	char* current_program;
+	const int program_size = 4;
+	current_program = (char*) malloc(sizeof(char)*program_size);
+
+	// stats
+	int count_programs = 0;
+	int max_oc = -1;
+	
+	while(TRUE){ // iterate programs
+		
+		// run program
+		print_program2(current_program, program_size);
+		int output_counter = -1;
+		output_counter = run_program2(current_program, program_size);
+		
+		// output stats
+		printf(" (OC:%d)\n", output_counter);
+		
+		// pause
+		//const int string_size = strlen(reference_output);
+		//if(output_counter==string_size) PAUSE();
+				
+		if(output_counter>max_oc){
+			max_oc = output_counter;
+		}
+		
+		count_programs++; // count programs
+
+		if(TRUE == next_program2(current_program, program_size)){				
+			break; // iteration completed
+		}
+	}
+	
+	printf("(count_programs:%d)", count_programs);
+	
+	return max_oc;
+}
+
 int main(int argc, char **argv) {
 	//multiple_programs_executed_sequentially();
 	
-	const int max_oc = iterate_programs();
+	//printf("enter to run\n"); PAUSE();
+	
+	const int max_oc = iterate_programs2();
 	
 	//printf("(out stats:%d)", run_program(prog_compare_test));
 	
