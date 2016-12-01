@@ -6,7 +6,7 @@
 
 const int FALSE = (0==1);
 const int TRUE  = (0==0);
-#define SKIP_INPUT_REQUEST TRUE
+#define SKIP_INPUT_REQUEST FALSE
 
 #define DEBUG_USING_PRINTF TRUE
 #define DEBUG2_USING_PRINTF FALSE
@@ -138,6 +138,24 @@ instruction_type prog_compare_test[] =	{
 	{ {OUT,	ZERO}, {1, 1} },
 	{ {OUT,	ONE}, {2, 2} },
 	{ {OUT,	ZERO}, {EXIT_INDEX, EXIT_INDEX} }
+};
+
+// program: array
+instruction_type prog_array[] =	{
+	{ {5,	IN}, {1, 1} },				// 0) read x
+	{ {6,	IN}, {2, 2} },				// 1) read i.0
+	{ {7,	IN}, {3, 3} },				// 2) read i.1
+	{ {PATH_CHOOSER,	6},	{4, 5} },	// 3) first level path separation
+	{ {PATH_CHOOSER,	7},	{6, 7} },	// 4) second level path separation
+	{ {PATH_CHOOSER,	7},	{8, 9} },	// 5) second level path separation
+	{ {8,	5}, 			{10, 10} },	// 6) a[0] = x (a[i]=x with i=0)
+	{ {9,	5}, 			{10, 10} },	// 7) a[1] = x (a[i]=x with i=1)
+	{ {10,	5}, 			{10, 10} },	// 8) a[2] = x (a[i]=x with i=2)
+	{ {11,	5}, 			{10, 10} },	// 9) a[3] = x (a[i]=x with i=3)
+	{ {OUT,	8}, 			{11, 11} },	// 10) print a[0]
+	{ {OUT,	9}, 			{12, 12} },	// 11) print a[1]
+	{ {OUT,	10}, 			{13, 13} },	// 12) print a[2]
+	{ {OUT,	11}, 			{0, 0} },	// 13) print a[3]
 };
 
 // *********************************************************
@@ -322,10 +340,10 @@ int test_bit_array(){
 	return 1;	
 }
 
-#define STEPS_LIMIT 10
+#define STEPS_LIMIT -1
 
 int run_program(instruction_type* run_this){
-	const char* target_output = "010"; // can be set to NULL to disable
+	const char* target_output = NULL; // can be set to NULL to disable
 
 	prog_selector = run_this;
 	
@@ -384,7 +402,7 @@ int run_program(instruction_type* run_this){
 	
 		path_choice();
 		
-		cycle_counter++; if(cycle_counter>=STEPS_LIMIT) break;
+		cycle_counter++; if(STEPS_LIMIT!=-1 && cycle_counter>=STEPS_LIMIT) break;
 	}
 	
 	printf(" } \n");
@@ -524,188 +542,7 @@ int iterate_programs(){
 	return max_oc;
 }
 
-// ------------------------------------------------------
-//  ---------------- SIMPLE 2 --------------------------
-
-const char* target_output = "0101101110001000"; // can be set to NULL to disable
-const int imodulo = 8; // 256, 16, 2
-
-void reset_memory2(char memory[], int memory_size){
-	// set all memory to zero
-	memset(memory, 0, memory_size);
-}
-
-int run_program2(char memory_in[], int size){ // PROGRAM_SIZE
-	
-	char* memory = (char*) malloc(sizeof(char)*size);
-	memcpy(memory, memory_in, sizeof(char)*size);
-	
-	const char * target_output_cur = target_output;
-	
-	int output_counter = 0;
-	
-	int i=0;
-	
-	int steps = 0;
-	
-	while(1){
-		char delta = memory[i];
-		if(delta == 0){
-			delta = 1;
-
-			const int out = memory[(i+1)%size] &1;
-			// there is output
-			if(target_output!=NULL){
-				const char cur = *target_output_cur;
-				
-				const int cur_bit = cur-'0';
-				assert(cur_bit==0 || cur_bit==1);
-				
-				if(out==cur_bit){
-				
-					output_counter++;
-					target_output_cur++;
-					if(*target_output_cur=='\0'){
-						break;
-					}
-				
-				}else{
-					break;
-				}
-			}else{
-				output_counter++;			
-			}
-
-			// print output
-			printf(" %d ", out);
-
-		}else{
-			memory[i] = (memory[i]+memory[(i+1)%size]) %imodulo;
-		}
-		
-		delta -= imodulo/2; // forward and backward
-		
-		i = (i+delta) %size;
-		
-		const int max_steps = 10;
-		steps++; if(steps>=max_steps){ printf(" @max_steps"); break; }
-	}
-	
-	return output_counter;
-	
-}
-
-int increment_instruction2(char* instruction){
-	*instruction = (*instruction + 1) %imodulo;
-	return *instruction==0;
-}
-
-int next_program2(char program[], const int PROGRAM_SIZE){
-
-	int instruction_index = 0; // instruction index
-	int overflow;
-	
-	while(TRUE){
-		overflow = increment_instruction2(&program[instruction_index]);
-		
-		if(TRUE == overflow){
-			instruction_index++;
-
-			if(PROGRAM_SIZE <= instruction_index){
-				overflow = TRUE; // full iteration completed
-				break;
-			}
-		}else{
-			overflow = FALSE; // full iteration not completed
-			break;	
-		}
-	}
-	
-	return overflow;
-}
-
-void print_program2(char current_program[], const int PROGRAM_SIZE, FILE* file){
-	for(int i=0; i<PROGRAM_SIZE; i++)
-		fprintf(file, " %d ", current_program[i]);
-	fprintf(file, "\n");
-}
-
-
-int iterate_programs2(){
-	
-	FILE* logger = fopen("executions.log.txt", "a+");
-	
-	// program
-	char* current_program;
-	const int PROGRAM_SIZE = 10;
-	current_program = (char*) malloc(sizeof(char)*PROGRAM_SIZE);
-
-	// stats
-	int count_programs = 0;
-	int max_oc = -1;
-	
-	while(TRUE){ // iterate programs
-		
-		// - run program
-		
-		print_program2(current_program, PROGRAM_SIZE, stdout);
-		
-		int output_counter = -1;
-		output_counter = run_program2(current_program, PROGRAM_SIZE);
-		
-		// output stats
-		printf(" (OC:%d)\n", output_counter);
-		
-		// pause
-		const int string_size = strlen(target_output);
-		if(string_size-output_counter<=3) PAUSE();
-				
-		if(output_counter>max_oc){
-			
-			// new max_oc value
-			max_oc = output_counter;
-			
-			// - log
-			
-			// log program
-			print_program2(current_program, PROGRAM_SIZE, logger);
-			
-			// log output
-			for(int i=0; i<max_oc; i++){
-				fprintf(logger, "%c", target_output[i]);
-			}
-			fprintf(logger, "\n");
-			
-			fflush(logger);
-			
-			// - reset and PAUSE
-			char reset = 'd';
-			reset = PAUSE();
-			if(reset=='r') max_oc=0;
-		}
-		
-		count_programs++; // count programs
-
-		if(TRUE == next_program2(current_program, PROGRAM_SIZE)){				
-			break; // iteration completed
-		}
-	}
-	
-	printf("(count_programs:%d)", count_programs);
-	
-	return max_oc;
-}
-
 int main(int argc, char **argv) {
-	//multiple_programs_executed_sequentially();
-	
-	//printf("enter to run\n"); PAUSE();
-	
-	const int max_oc = iterate_programs2();
-	
-	//printf("(out stats:%d)", run_program(prog_compare_test));
-	
-	printf(" (maxOutC:%d)", max_oc);
-	
+	run_program(prog_array);		
 	return 0;
 }
