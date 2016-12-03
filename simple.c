@@ -3,13 +3,12 @@
 #include <assert.h>
 #include <stdint.h>
 #include <string.h> // for memset
+#include <stdbool.h>
 
-const int FALSE = (0==1);
-const int TRUE  = (0==0);
-#define SKIP_INPUT_REQUEST FALSE
+#define SKIP_INPUT_REQUEST false
 
-#define DEBUG_USING_PRINTF TRUE
-#define DEBUG2_USING_PRINTF FALSE
+#define DEBUG_USING_PRINTF true
+#define DEBUG2_USING_PRINTF false
 
 #define INPUT_SYSTEM_WINDOWS 1
 #define INPUT_SYSTEM_UNIX 2
@@ -55,113 +54,114 @@ typedef struct instruction_type_struct{
 } instruction_type;
 
 // reserved constants for memory address (e.g. mapping[0] or mapping[1])
-#define PATH_CHOOSER 0
+#define PATHSEL 0
 #define OUT 1
 #define ZERO 2
 #define ONE 3
 #define IN 4
 
-// reserved constants for instruction index (e.g. cur_instruction, paths[0], paths[1], etc.)
+// reserved constants for instruction index (e.g. current_instruction_index, paths[0], paths[1], etc.)
 #define PROGRAM_START_INDEX 0
-#define EXIT_INDEX -1
-instruction_index_type cur_instruction = PROGRAM_START_INDEX;
+instruction_index_type current_instruction_index = PROGRAM_START_INDEX;
+#define END 0
 
 // *********************************************************
 
 // program: bit copy
 instruction_type prog_bitcopy[] =	{
-	{ {OUT, IN}, {0,0} },
+	{ {OUT,		IN},	{1,	1}	},
+	{ {0,		0},	{-1,	-1}	}
 };
 
-// program: bit copy with exit or repeat
-instruction_type prog_bitcopy_exit[] =	{
-	{ {OUT, IN}, {1,1} },
-	{ {PATH_CHOOSER, IN}, {0, EXIT_INDEX} }
+// program: bit copy with end or repeat
+instruction_type prog_bitcopy_end[] =	{
+	{ {OUT,		IN},	{1,	1}	},
+	{ {PATHSEL,	IN},	{-1,	END}	}
 };
 
 // program: NOT gate emulation
 instruction_type prog_not[] =	{
-	{ {PATH_CHOOSER, IN}, {2, 1} },
-	{ {OUT, ZERO}, {0, 0} },
-	{ {OUT, ONE}, {0, 0} }
+	{ {PATHSEL,	IN},	{2,	1}	},
+	{ {OUT,		ZERO},	{-1,	-1}	},
+	{ {OUT,		ONE},	{-2,	-2}	}
 };
 
 // program: AND gate emulation
 instruction_type prog_and[] =	{
-	{ {PATH_CHOOSER, IN}, {1,4} },
-	{ {PATH_CHOOSER, IN}, {2, 2} },
-	{ {OUT, ZERO}, {0, 0} },
-	{ {OUT, ONE}, {0, 0} },
-	{ {PATH_CHOOSER, IN}, {2, 3} }
+	{ {PATHSEL,	IN},	{1,	4}	},
+	{ {PATHSEL,	IN},	{1,	1}	},
+	{ {OUT,		ZERO},	{-2,	-2}	},
+	{ {OUT,		ONE},	{-3,	-3}	},
+	{ {PATHSEL,	IN},	{-2,	-1}	}
 };
 
 // program: OR gate emulation
 instruction_type prog_or[] =	{
-	{ {PATH_CHOOSER, IN}, {1,4} },
-	{ {PATH_CHOOSER, IN}, {2, 3} },
-	{ {OUT, ZERO}, {0, 0} },
-	{ {OUT, ONE}, {0, 0} },
-	{ {PATH_CHOOSER, IN}, {3, 3} }
+	{ {PATHSEL,	IN},	{1,	4}	},
+	{ {PATHSEL,	IN},	{1,	2}	},
+	{ {OUT,		ZERO},	{-2,	-2}	},
+	{ {OUT,		ONE},	{-3,	-3}	},
+	{ {PATHSEL,	IN},	{-1,	-1}	}
 };
 
 // program: NAND gate emulation
 instruction_type prog_nand[] =	{
-	{ {PATH_CHOOSER, IN}, {1,4} },
-	{ {PATH_CHOOSER, IN}, {2, 2} },
-	{ {OUT, ONE}, {0, 0} },
-	{ {OUT, ZERO}, {0, 0} },
-	{ {PATH_CHOOSER, IN}, {2, 3} }
+	{ {PATHSEL,	IN},	{1,	4}	},
+	{ {PATHSEL,	IN},	{1,	1}	},
+	{ {OUT,		ONE},	{-2,	-2}	},
+	{ {OUT,		ZERO},	{-3,	-3}	},
+	{ {PATHSEL,	IN},	{-2,	-1}	}
 };
 
 // program: NOR gate emulation
 instruction_type prog_nor[] =	{
-	{ {PATH_CHOOSER, IN}, {1,4} },
-	{ {PATH_CHOOSER, IN}, {2, 3} },
-	{ {OUT, ONE}, {0, 0} },
-	{ {OUT, ZERO}, {0, 0} },
-	{ {PATH_CHOOSER, IN}, {3, 3} }
+	{ {PATHSEL,	IN},	{1,	4}	},
+	{ {PATHSEL,	IN},	{1,	2}	},
+	{ {OUT,		ONE},	{-2,	-2}	},
+	{ {OUT,		ZERO},	{-3,	-3}	},
+	{ {PATHSEL,	IN},	{-1,	-1}	}
 };
 
 // program: memory to output
 instruction_type prog_memory_out[] =	{
-	{ {10,	11}, {1, 1} },
-	{ {13,	14}, {2, 2} },
-	{ {OUT,	10}, {3, 3} },
-	{ {OUT,	11}, {4, 4} },
-	{ {OUT,	12}, {5, 5} },
-	{ {OUT,	13}, {6, 6} },
-	{ {OUT,	14}, {EXIT_INDEX, EXIT_INDEX} }
+	{ {10,		11},	{1,	1}	},
+	{ {13,		14},	{1,	1}	},
+	{ {OUT,		10},	{1,	1}	},
+	{ {OUT,		11},	{1,	1}	},
+	{ {OUT,		12},	{1,	1}	},
+	{ {OUT,		13},	{1,	1}	},
+	{ {OUT,		14},	{END,	END}	}
 };
 
 // program: output compare test
 instruction_type prog_compare_test[] =	{
-	{ {OUT,	ZERO}, {1, 1} },
-	{ {OUT,	ONE}, {2, 2} },
-	{ {OUT,	ZERO}, {EXIT_INDEX, EXIT_INDEX} }
+	{ {OUT,		ZERO},	{1,	1}	},
+	{ {OUT,		ONE},	{1,	1}	},
+	{ {OUT,		ZERO},	{END,	END}	}
 };
 
 // program: array
 instruction_type prog_array[] =	{
-	{ {5,	IN}, {1, 1} },				// 0) read x
-	{ {6,	IN}, {2, 2} },				// 1) read i.0
-	{ {7,	IN}, {3, 3} },				// 2) read i.1
-	{ {PATH_CHOOSER,	6},	{4, 5} },	// 3) first level path separation
-	{ {PATH_CHOOSER,	7},	{6, 7} },	// 4) second level path separation
-	{ {PATH_CHOOSER,	7},	{8, 9} },	// 5) second level path separation
-	{ {8,	5}, 			{10, 10} },	// 6) a[0] = x (a[i]=x with i=0)
-	{ {9,	5}, 			{10, 10} },	// 7) a[1] = x (a[i]=x with i=1)
-	{ {10,	5}, 			{10, 10} },	// 8) a[2] = x (a[i]=x with i=2)
-	{ {11,	5}, 			{10, 10} },	// 9) a[3] = x (a[i]=x with i=3)
-	{ {OUT,	8}, 			{11, 11} },	// 10) print a[0]
-	{ {OUT,	9}, 			{12, 12} },	// 11) print a[1]
-	{ {OUT,	10}, 			{13, 13} },	// 12) print a[2]
-	{ {OUT,	11}, 			{0, 0} },	// 13) print a[3]
+	{ {5,		IN},	{1,	1} 	}, // 0) read x
+	{ {6,		IN},	{1,	1} 	}, // 1) read i.0
+	{ {7,		IN},	{1,	1} 	}, // 2) read i.1
+	{ {PATHSEL,	6},	{1,	2} 	}, // 3) first level path separation
+	{ {PATHSEL,	7},	{2,	3}	}, // 4) second level path separation
+	{ {PATHSEL,	7},	{3,	4}	}, // 5) second level path separation
+	{ {8,		5}, 	{4,	4}	}, // 6) a[0] = x (a[i]=x with i=0)
+	{ {9,		5}, 	{3,	3}	}, // 7) a[1] = x (a[i]=x with i=1)
+	{ {10,		5}, 	{2,	2}	}, // 8) a[2] = x (a[i]=x with i=2)
+	{ {11,		5}, 	{1,	1}	}, // 9) a[3] = x (a[i]=x with i=3)
+	{ {OUT,		8}, 	{1,	1}	}, // 10) print a[0]
+	{ {OUT,		9}, 	{1,	1}	}, // 11) print a[1]
+	{ {OUT,		10}, 	{1,	1}	}, // 12) print a[2]
+	{ {OUT,		11}, 	{-13,	-13}	}, // 13) print a[3]
 };
 
 // *********************************************************
 
 // use "program selector" to select which program to run in the Machine
-instruction_type* prog_selector = prog_nor;
+instruction_type* g_prog_selector = prog_nor;
 
 #if INPUT_SYSTEM == INPUT_SYSTEM_UNIX
 #include <unistd.h>
@@ -190,7 +190,7 @@ char getch(){
 #endif
 
 #define INVALID_BIT -1
-#define QUIT_SIGNAL -2
+#define QUIT -2
 
 #define PAUSE() get_char()
 
@@ -219,7 +219,7 @@ int getbit(){
 		return bit;
 	}
 	else if (ch=='q'){
-		return QUIT_SIGNAL;
+		return QUIT;
 	}
 	else return INVALID_BIT;
 }
@@ -272,16 +272,16 @@ int read_bit_from_memory(memory_index_type read_from){
 int read_bit_from_address(memory_index_type read_from){
 	int value;
 	if(read_from==IN) {
-		if(TRUE == SKIP_INPUT_REQUEST){
+		if(true == SKIP_INPUT_REQUEST){
 			//printf(" @skipped");
 			return 0;
 		}else
-		while(TRUE){
+		while(true){
 			value = getbit();
 			if(value == INVALID_BIT){
 				printf(" [insert bit (type '0' or '1') or quit (type 'q')!] ");
-			} else if(value == QUIT_SIGNAL){
-				return QUIT_SIGNAL;
+			} else if(value == QUIT){
+				return QUIT;
 			} else break;
 		}
 	} else if(read_from==ZERO) {
@@ -310,18 +310,22 @@ int write_bit_to_address(memory_index_type write_to, int bit){
 	}
 }
 
-int perform_operation(){
-	instruction_type instruction = prog_selector[(long long)cur_instruction];
+int perform_operation(instruction_type prog_selector[]){
+	instruction_type instruction = prog_selector[(long long)current_instruction_index];
 	int bit = read_bit_from_address(instruction.mapping[1]);
-	if(bit==QUIT_SIGNAL) return QUIT_SIGNAL;
+	if(bit==QUIT) return QUIT;
 	else
 		return write_bit_to_address(instruction.mapping[0], bit);
 }
 
-void path_choice(){
-	instruction_type instruction = prog_selector[(long long)cur_instruction];
-	int selector_bit = read_bit_from_memory(PATH_CHOOSER);
-	cur_instruction = instruction.paths[selector_bit];
+bool path_choice(instruction_type prog_selector[]){
+	instruction_type instruction = prog_selector[(long long)current_instruction_index];
+	int selector_bit = read_bit_from_memory(PATHSEL);
+	int increment = instruction.paths[selector_bit];
+	bool end;
+	if(0 != increment){ current_instruction_index += increment; end=false; }
+	else end=true;
+	return end;
 }
 
 int test_bit_array(){
@@ -340,14 +344,13 @@ int test_bit_array(){
 	return 1;	
 }
 
-#define STEPS_LIMIT -1
+#define STEPS_LIMIT_NO_LIMIT -1
+#define STEPS_LIMIT STEPS_LIMIT_NO_LIMIT
 
-int run_program(instruction_type* run_this){
+int run_program(instruction_type* program_selector){
 	const char* target_output = NULL; // can be set to NULL to disable
-
-	prog_selector = run_this;
 	
-	int pause = FALSE;
+	int pause = false;
 	
 	printf(" { ");
 	
@@ -355,18 +358,14 @@ int run_program(instruction_type* run_this){
 	int cycle_counter = 0;
 	int output_counter = 0;
 	
-	cur_instruction = PROGRAM_START_INDEX;
+	current_instruction_index = PROGRAM_START_INDEX;
 	const char * target_output_cur = target_output;
-	while(TRUE){
-		if(cur_instruction==EXIT_INDEX){
-			printf(" @EXIT_INDEX");
-			break;
-		}
+	while(true){
 	
-		const int out = perform_operation();
+		const int out = perform_operation(program_selector);
 	
-		if(out == QUIT_SIGNAL){
-			printf(" @QUIT_SIGNAL");
+		if(out == QUIT){
+			printf(" @QUIT");
 			break;
 		}
 	
@@ -385,7 +384,7 @@ int run_program(instruction_type* run_this){
 					output_counter++;
 					target_output_cur++;
 					if(*target_output_cur=='\0'){
-						pause = TRUE;
+						pause = true;
 						break;
 					}
 				
@@ -396,18 +395,22 @@ int run_program(instruction_type* run_this){
 				output_counter++;			
 			}
 			
-			if(FALSE == DEBUG_USING_PRINTF)
+			if(false == DEBUG_USING_PRINTF)
 				printf("%d", out);
 		}
 	
-		path_choice();
+		bool end = path_choice(program_selector);
+		if(end){
+			printf(" @END");
+			break;
+		}
 		
-		cycle_counter++; if(STEPS_LIMIT!=-1 && cycle_counter>=STEPS_LIMIT) break;
+		cycle_counter++; if(STEPS_LIMIT!=STEPS_LIMIT_NO_LIMIT && cycle_counter>=STEPS_LIMIT) break;
 	}
 	
 	printf(" } \n");
 	
-	if(pause == TRUE) PAUSE();
+	if(pause == true) PAUSE();
 	
 	return output_counter;
 }
@@ -465,13 +468,13 @@ int increment_instruction(instruction_type* instruction){
 				MODULO_INCREMENT(instruction->FIELD_4, MODULO_MAX)
 				if(0 == instruction->FIELD_4){
 
-					return TRUE; // overflow, full iteration cycle
+					return true; // overflow, full iteration cycle
 				}
 			}
 
 		}	
 	}
-	return FALSE;
+	return false;
 }
 
 int next_program(instruction_type program[], const int size){
@@ -479,18 +482,18 @@ int next_program(instruction_type program[], const int size){
 	int instruction_index = 0; // instruction index
 	int overflow;
 	
-	while(TRUE){
+	while(true){
 		overflow = increment_instruction(&program[instruction_index]);
 		
 		if(overflow){
 			instruction_index++;
 
 			if(size <= instruction_index){
-				overflow = TRUE; // full iteration completed
+				overflow = true; // full iteration completed
 				break;
 			}
 		}else{
-			overflow = FALSE; // full iteration not completed
+			overflow = false; // full iteration not completed
 			break;
 		}
 	}
@@ -514,7 +517,7 @@ int iterate_programs(){
 	int count_programs = 0;
 	int max_oc = -1;
 	
-	while(TRUE){ // iterate programs
+	while(true){ // iterate programs
 		
 		// - run program
 		
@@ -532,7 +535,7 @@ int iterate_programs(){
 		
 		count_programs++; // count programs
 
-		if(TRUE == next_program(current_program, PROGRAM_SIZE)){
+		if(true == next_program(current_program, PROGRAM_SIZE)){
 			break; // iteration completed
 		}
 	}
@@ -543,6 +546,9 @@ int iterate_programs(){
 }
 
 int main(int argc, char **argv) {
-	run_program(prog_array);		
+	bootstrap_tests();
+	
+	//run_program(g_prog_selector);
+	multiple_programs_executed_sequentially();
 	return 0;
 }
