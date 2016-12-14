@@ -40,13 +40,14 @@
 	typedef uint32_t bit_type;
 #endif
 
-bit_type memory[256] = {0};
+#define MAX_ADDRESS 255
+bit_type memory[MAX_ADDRESS+1] = {0};
 
 // 8 bit data addressing (256 bits of data memory)
-typedef char memory_index_type;
+typedef int memory_index_type;
 
 // 8 bit instruction addressing (256 instructions)
-typedef char instruction_index_type;
+typedef int instruction_index_type;
 
 typedef struct instruction_type_struct{
 	memory_index_type mapping[2];
@@ -54,108 +55,108 @@ typedef struct instruction_type_struct{
 } instruction_type;
 
 // reserved constants for memory address (e.g. mapping[0] or mapping[1])
-#define PATHSEL 0
-#define OUT 1
-#define ZERO 2
-#define ONE 3
-#define IN 4
+#define RESERVED MAX_ADDRESS
+#define PATHSEL (RESERVED-0)
+#define OUT (RESERVED-1)
+#define ZERO (RESERVED-2)
+#define ONE (RESERVED-3)
+#define IN (RESERVED-4)
 
 // reserved constants for instruction index (e.g. current_instruction_index, paths[0], paths[1], etc.)
 #define PROGRAM_START_INDEX 0
 instruction_index_type current_instruction_index = PROGRAM_START_INDEX;
-#define END 0
+#define END -1
 
 // *********************************************************
 
 // program: bit copy
 instruction_type prog_bitcopy[] =	{
-	{ {OUT,		IN},	{1,	1}	},
-	{ {0,		0},	{-1,	-1}	}
+	{ {OUT,		IN},	{0,	0}	}
 };
 
 // program: bit copy with end or repeat
 instruction_type prog_bitcopy_end[] =	{
 	{ {OUT,		IN},	{1,	1}	},
-	{ {PATHSEL,	IN},	{-1,	END}	}
+	{ {PATHSEL,	IN},	{0,	END}	}
 };
 
 // program: NOT gate emulation
 instruction_type prog_not[] =	{
 	{ {PATHSEL,	IN},	{2,	1}	},
-	{ {OUT,		ZERO},	{-1,	-1}	},
-	{ {OUT,		ONE},	{-2,	-2}	}
+	{ {OUT,		ZERO},	{0,	0}	},
+	{ {OUT,		ONE},	{0,	0}	}
 };
 
 // program: AND gate emulation
 instruction_type prog_and[] =	{
 	{ {PATHSEL,	IN},	{1,	4}	},
-	{ {PATHSEL,	IN},	{1,	1}	},
-	{ {OUT,		ZERO},	{-2,	-2}	},
-	{ {OUT,		ONE},	{-3,	-3}	},
-	{ {PATHSEL,	IN},	{-2,	-1}	}
+	{ {PATHSEL,	IN},	{2,	2}	},
+	{ {OUT,		ZERO},	{0,	0}	},
+	{ {OUT,		ONE},	{0,	0}	},
+	{ {PATHSEL,	IN},	{2,	3}	}
 };
 
 // program: OR gate emulation
 instruction_type prog_or[] =	{
 	{ {PATHSEL,	IN},	{1,	4}	},
-	{ {PATHSEL,	IN},	{1,	2}	},
-	{ {OUT,		ZERO},	{-2,	-2}	},
-	{ {OUT,		ONE},	{-3,	-3}	},
-	{ {PATHSEL,	IN},	{-1,	-1}	}
+	{ {PATHSEL,	IN},	{2,	3}	},
+	{ {OUT,		ZERO},	{0,	0}	},
+	{ {OUT,		ONE},	{0,	0}	},
+	{ {PATHSEL,	IN},	{3,	3}	}
 };
 
 // program: NAND gate emulation
 instruction_type prog_nand[] =	{
 	{ {PATHSEL,	IN},	{1,	4}	},
-	{ {PATHSEL,	IN},	{1,	1}	},
-	{ {OUT,		ONE},	{-2,	-2}	},
-	{ {OUT,		ZERO},	{-3,	-3}	},
-	{ {PATHSEL,	IN},	{-2,	-1}	}
+	{ {PATHSEL,	IN},	{2,	2}	},
+	{ {OUT,		ONE},	{0,	0}	},
+	{ {OUT,		ZERO},	{0,	0}	},
+	{ {PATHSEL,	IN},	{2,	3}	}
 };
 
 // program: NOR gate emulation
 instruction_type prog_nor[] =	{
 	{ {PATHSEL,	IN},	{1,	4}	},
-	{ {PATHSEL,	IN},	{1,	2}	},
-	{ {OUT,		ONE},	{-2,	-2}	},
-	{ {OUT,		ZERO},	{-3,	-3}	},
-	{ {PATHSEL,	IN},	{-1,	-1}	}
+	{ {PATHSEL,	IN},	{2,	3}	},
+	{ {OUT,		ONE},	{0,	0}	},
+	{ {OUT,		ZERO},	{0,	0}	},
+	{ {PATHSEL,	IN},	{3,	3}	}
 };
 
 // program: memory to output
 instruction_type prog_memory_out[] =	{
 	{ {10,		11},	{1,	1}	},
-	{ {13,		14},	{1,	1}	},
-	{ {OUT,		10},	{1,	1}	},
-	{ {OUT,		11},	{1,	1}	},
-	{ {OUT,		12},	{1,	1}	},
-	{ {OUT,		13},	{1,	1}	},
+	{ {13,		14},	{2,	2}	},
+	{ {OUT,		10},	{3,	3}	},
+	{ {OUT,		11},	{4,	4}	},
+	{ {OUT,		12},	{5,	5}	},
+	{ {OUT,		13},	{6,	6}	},
 	{ {OUT,		14},	{END,	END}	}
 };
 
 // program: output compare test
 instruction_type prog_compare_test[] =	{
 	{ {OUT,		ZERO},	{1,	1}	},
-	{ {OUT,		ONE},	{1,	1}	},
+	{ {OUT,		ONE},	{2,	2}	},
 	{ {OUT,		ZERO},	{END,	END}	}
 };
 
 // program: array
 instruction_type prog_array[] =	{
-	{ {5,		IN},	{1,	1} 	}, // 0) read x
-	{ {6,		IN},	{1,	1} 	}, // 1) read i.0
-	{ {7,		IN},	{1,	1} 	}, // 2) read i.1
-	{ {PATHSEL,	6},	{1,	2} 	}, // 3) first level path separation
-	{ {PATHSEL,	7},	{2,	3}	}, // 4) second level path separation
-	{ {PATHSEL,	7},	{3,	4}	}, // 5) second level path separation
-	{ {8,		5}, 	{4,	4}	}, // 6) a[0] = x (a[i]=x with i=0)
-	{ {9,		5}, 	{3,	3}	}, // 7) a[1] = x (a[i]=x with i=1)
-	{ {10,		5}, 	{2,	2}	}, // 8) a[2] = x (a[i]=x with i=2)
-	{ {11,		5}, 	{1,	1}	}, // 9) a[3] = x (a[i]=x with i=3)
-	{ {OUT,		8}, 	{1,	1}	}, // 10) print a[0]
-	{ {OUT,		9}, 	{1,	1}	}, // 11) print a[1]
-	{ {OUT,		10}, 	{1,	1}	}, // 12) print a[2]
-	{ {OUT,		11}, 	{-13,	-13}	}, // 13) print a[3]
+	{ {0,		IN},	{1,	1} 	}, // 0) read x
+	{ {1,		IN},	{2,	2} 	}, // 1) read i.0
+	{ {2,		IN},	{3,	3} 	}, // 2) read i.1
+	{ {PATHSEL,	1},	{4,	5} 	}, // 3) first level path separation
+	{ {PATHSEL,	2},	{6,	7}	}, // 4) second level path separation
+	{ {PATHSEL,	2},	{8,	9}	}, // 5) second level path separation
+	{ {3,		0}, 	{10,	10}	}, // 6) a[0] = x (a[i]=x with i=0)
+	{ {4,		0}, 	{10,	10}	}, // 7) a[1] = x (a[i]=x with i=1)
+	{ {5,		0}, 	{10,	10}	}, // 8) a[2] = x (a[i]=x with i=2)
+	{ {6,		0}, 	{10,	10}	}, // 9) a[3] = x (a[i]=x with i=3)
+	{ {OUT,		3}, 	{11,	11}	}, // 10) print a[0]
+	{ {OUT,		4}, 	{12,	12}	}, // 11) print a[1]
+	{ {OUT,		5}, 	{13,	13}	}, // 12) print a[2]
+	{ {OUT,		6}, 	{0,	0}	}, // 13) print a[3]
 };
 
 // *********************************************************
@@ -206,12 +207,12 @@ char get_char(){
 }
 
 int getbit(){
-	
+
 	if(DEBUG_USING_PRINTF)
 		printf(" in:");
-	
+
 	char ch = get_char();
-	
+
 	if (ch=='0' || ch=='1'){
 		int bit = ch=='0'?0:1; // '0' or '1'
 		if(DEBUG2_USING_PRINTF)
@@ -241,10 +242,10 @@ void write_bit_to_memory(memory_index_type write_to, int bit){
 	#if BIT_ACCESS_IN_USE == BITWISE_OPS_BIT_ACCESS
 		if(DEBUG2_USING_PRINTF)
 			printf("[write_btm(): %d]", bit);
-	
+
 		int x = bitArray_wordIndex(write_to);
 		int y = bitArray_bitIndex(write_to);
-		
+
 		if(bit==0)
 			ClearBit(memory[x],y);
 		else if(bit==1)
@@ -259,10 +260,10 @@ int read_bit_from_memory(memory_index_type read_from){
 	#endif
 
 	#if BIT_ACCESS_IN_USE == BITWISE_OPS_BIT_ACCESS
-		
+
 		int x = memory[bitArray_wordIndex(read_from)];
 		int y = bitArray_bitIndex(read_from);
-		
+
 		value = BitVal(x,y);
 	#endif
 
@@ -291,16 +292,16 @@ int read_bit_from_address(memory_index_type read_from){
 	} else {
 		value = read_bit_from_memory(read_from);
 	}
-	
+
 	if(DEBUG2_USING_PRINTF)
 		printf("[read_bfa(): %d]", value);
-	
+
 	return value;
 }
 
 int write_bit_to_address(memory_index_type write_to, int bit){
 	write_bit_to_memory(write_to, bit);
-	
+
 	if(write_to==OUT){
 		if(DEBUG_USING_PRINTF)
 			printf(" out:%d", bit);
@@ -321,9 +322,9 @@ int perform_operation(instruction_type prog_selector[]){
 bool path_choice(instruction_type prog_selector[]){
 	instruction_type instruction = prog_selector[(long long)current_instruction_index];
 	int selector_bit = read_bit_from_memory(PATHSEL);
-	int increment = instruction.paths[selector_bit];
+	int next = instruction.paths[selector_bit];
 	bool end;
-	if(0 != increment){ current_instruction_index += increment; end=false; }
+	if(END != next){ current_instruction_index = next; end=false; }
 	else end=true;
 	return end;
 }
@@ -334,14 +335,14 @@ int test_bit_array(){
 	int i;
 	for(i = 0; i<size; i++)
 		write_bit_to_memory(10+i, bits[i]);
-	
+
 	if(DEBUG2_USING_PRINTF)
 		printf("\n");
-	
+
 	for(i = 0; i<size; i++)
 		if(read_bit_from_memory(10+i)!=bits[i])
 			return 0;
-	return 1;	
+	return 1;
 }
 
 #define STEPS_LIMIT_NO_LIMIT -1
@@ -349,79 +350,79 @@ int test_bit_array(){
 
 int run_program(instruction_type* program_selector){
 	const char* target_output = NULL; // can be set to NULL to disable
-	
+
 	int pause = false;
-	
+
 	printf(" { ");
-	
+
 	// counters for stats
 	int cycle_counter = 0;
 	int output_counter = 0;
-	
+
 	current_instruction_index = PROGRAM_START_INDEX;
 	const char * target_output_cur = target_output;
 	while(true){
-	
+
 		const int out = perform_operation(program_selector);
-	
+
 		if(out == QUIT){
 			printf(" @QUIT");
 			break;
 		}
-	
+
 		if(out!=INVALID_BIT){
-			
+
 			// there is output
-			
+
 			if(target_output!=NULL){
 				const char cur = *target_output_cur;
-				
+
 				const int cur_bit = cur-'0';
 				assert(cur_bit==0 || cur_bit==1);
-				
+
 				if(out==cur_bit){
-				
+
 					output_counter++;
 					target_output_cur++;
 					if(*target_output_cur=='\0'){
 						pause = true;
 						break;
 					}
-				
+
 				}else{
 					break;
 				}
 			}else{
-				output_counter++;			
+				output_counter++;
 			}
-			
+
 			if(false == DEBUG_USING_PRINTF)
 				printf("%d", out);
 		}
-	
+
 		bool end = path_choice(program_selector);
 		if(end){
 			printf(" @END");
 			break;
 		}
-		
+
 		cycle_counter++; if(STEPS_LIMIT!=STEPS_LIMIT_NO_LIMIT && cycle_counter>=STEPS_LIMIT) break;
 	}
-	
+
 	printf(" } \n");
-	
+
 	if(pause == true) PAUSE();
-	
+
 	return output_counter;
 }
 
 void bootstrap_tests(){
 	if(DEBUG2_USING_PRINTF)
 		printf("- bitArray_wordSize: %d\n", (int)bitArray_wordSize);
-	
+
 	int bit_array_works = test_bit_array();
-	assert(bit_array_works); 
-	
+	assert(bit_array_works);
+
 	if(DEBUG2_USING_PRINTF)
 		printf("- test_bit_array(): %d\n", bit_array_works);
 }
@@ -455,16 +456,16 @@ void print_program(instruction_type program[], const int size){
 }
 
 int increment_instruction(instruction_type* instruction){
-	
+
 	MODULO_INCREMENT(instruction->FIELD_1, MODULO_MAX)
 	if(0 == instruction->FIELD_1) {
-			
+
 		MODULO_INCREMENT(instruction->FIELD_2, MODULO_MAX)
 		if(0 == instruction->FIELD_2){
-			
+
 			MODULO_INCREMENT(instruction->FIELD_3, MODULO_MAX)
 			if(0 == instruction->FIELD_3) {
-				
+
 				MODULO_INCREMENT(instruction->FIELD_4, MODULO_MAX)
 				if(0 == instruction->FIELD_4){
 
@@ -472,7 +473,7 @@ int increment_instruction(instruction_type* instruction){
 				}
 			}
 
-		}	
+		}
 	}
 	return false;
 }
@@ -481,10 +482,10 @@ int next_program(instruction_type program[], const int size){
 
 	int instruction_index = 0; // instruction index
 	int overflow;
-	
+
 	while(true){
 		overflow = increment_instruction(&program[instruction_index]);
-		
+
 		if(overflow){
 			instruction_index++;
 
@@ -507,7 +508,7 @@ void reset_memory(){
 }
 
 int iterate_programs(){
-	
+
 	// program
 	instruction_type* current_program;
 	const int PROGRAM_SIZE = 4;
@@ -516,39 +517,39 @@ int iterate_programs(){
 	// stats
 	int count_programs = 0;
 	int max_oc = -1;
-	
+
 	while(true){ // iterate programs
-		
+
 		// - run program
-		
+
 		print_program(current_program, PROGRAM_SIZE);
-		
+
 		reset_memory();
 		int output_counter = run_program(current_program);
-		
+
 		// output stats
 		printf(" (OC:%d)\n", output_counter);
-				
+
 		if(output_counter>max_oc){
 			max_oc = output_counter;
 		}
-		
+
 		count_programs++; // count programs
 
 		if(true == next_program(current_program, PROGRAM_SIZE)){
 			break; // iteration completed
 		}
 	}
-	
+
 	printf("(count_programs:%d)", count_programs);
-	
+
 	return max_oc;
 }
 
 int main(int argc, char **argv) {
-	bootstrap_tests();
-	
-	//run_program(g_prog_selector);
-	multiple_programs_executed_sequentially();
+	//bootstrap_tests();
+
+	run_program(prog_array);
+	//multiple_programs_executed_sequentially();
 	return 0;
 }
