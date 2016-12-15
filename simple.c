@@ -15,25 +15,6 @@
 #define DEBUG_USING_PRINTF true
 #define DEBUG2_USING_PRINTF false
 
-#define INPUT_SYSTEM_WINDOWS 1
-#define INPUT_SYSTEM_UNIX 2
-
-#ifndef INPUT_SYSTEM
-
-#ifndef _WIN32
-#define INPUT_SYSTEM INPUT_SYSTEM_UNIX
-#endif
-
-#ifdef _WIN32
-#define INPUT_SYSTEM INPUT_SYSTEM_WINDOWS
-#endif
-
-#endif
-
-#if INPUT_SYSTEM == INPUT_SYSTEM_WINDOWS
-#include <conio.h>
-#endif
-
 // bit handling
 
 #define SIMPLE_BIT_ACCESS 1
@@ -200,10 +181,32 @@ instruction_type prog_array[] =	{
 // use "program selector" to select which program to run in the Machine
 instruction_type* g_prog_selector = prog_nor;
 
-#if INPUT_SYSTEM == INPUT_SYSTEM_UNIX
+// bit constants
+#define MAX_BIT_VALUE 1
+#define INVALID_BIT MAX_BIT_VALUE+1
+#define QUIT MAX_BIT_VALUE+2
+
+// get_char() in windows and linux
+
+#ifdef _WIN32
+#include <conio.h>
+char get_char_configurable(int echoes){
+    //puts("win32");
+    //return _getche();
+
+    char c = getch();
+    if(echo) putch(c);
+    return c;
+}
+#endif
+
+#ifdef __linux__
 #include <unistd.h>
 #include <termios.h>
-char getch(){
+char get_char_configurable(int echoes){
+
+    //puts("linux");
+
     char buf=0;
     struct termios old={0};
     fflush(stdout);
@@ -221,27 +224,19 @@ char getch(){
     old.c_lflag|=ECHO;
     if(tcsetattr(0, TCSADRAIN, &old)<0)
         perror ("tcsetattr ~ICANON");
-    printf("%c",buf);
+    if(echo) printf("%c",buf);
     return buf;
- }
+}
 #endif
 
-#define MAX_BIT_VALUE 1
-#define INVALID_BIT MAX_BIT_VALUE+1
-#define QUIT MAX_BIT_VALUE+2
-
-#define PAUSE() get_char()
-
 char get_char(){
-	char ch;
-	#if INPUT_SYSTEM == INPUT_SYSTEM_WINDOWS
-		ch = _getche();
-	#endif
-	#if INPUT_SYSTEM == INPUT_SYSTEM_UNIX
-		ch = getch();
-	#endif
-	return ch;
+    // echoes by default
+    return get_char_configurable(1);
 }
+
+#define PAUSE() get_char_configurable(0)
+
+// reads a bit
 
 int getbit(){
 
@@ -605,6 +600,8 @@ int iterate_programs(){
 
 int main(int argc, char **argv) {
 	//bootstrap_tests();
+
+    //PAUSE();
 
 	run_program(prog_bitcopy_end);
 	//multiple_programs_executed_sequentially();
