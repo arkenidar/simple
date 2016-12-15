@@ -34,20 +34,26 @@
 #define BIT_ACCESS_IN_USE BITWISE_OPS_BIT_ACCESS
 
 #if BIT_ACCESS_IN_USE == SIMPLE_BIT_ACCESS
-	typedef uint8_t bit_type;
+	typedef uint8_t bit_array_element_t;
 #endif
 #if BIT_ACCESS_IN_USE == BITWISE_OPS_BIT_ACCESS
-	typedef uint32_t bit_type;
+	typedef uint32_t bit_array_element_t;
 #endif
 
+#define MIN_ADDRESS 0
 #define MAX_ADDRESS 255
-bit_type memory[MAX_ADDRESS+1] = {0};
+bit_array_element_t memory[MAX_ADDRESS+1] = {0};
+
+typedef uint8_t bit_t;
+
+// path selector
+bit_t pathsel = 0;
 
 // 8 bit data addressing (256 bits of data memory)
-typedef int memory_index_type;
+typedef uint8_t memory_index_type;
 
 // 8 bit instruction addressing (256 instructions)
-typedef int instruction_index_type;
+typedef uint8_t instruction_index_type;
 
 typedef struct instruction_type_struct{
 	memory_index_type mapping[2];
@@ -55,17 +61,33 @@ typedef struct instruction_type_struct{
 } instruction_type;
 
 // reserved constants for memory address (e.g. mapping[0] or mapping[1])
-#define RESERVED MAX_ADDRESS
-#define PATHSEL (RESERVED-0)
-#define OUT (RESERVED-1)
-#define ZERO (RESERVED-2)
-#define ONE (RESERVED-3)
-#define IN (RESERVED-4)
+#define ADDRESS_RESERVED_COUNT 5 // PATHSEL, OUT, ZERO, ONE, IN
+
+#define ADDRESS_RESERVED_BEGIN MAX_ADDRESS-ADDRESS_RESERVED_COUNT
+#define PATHSEL (ADDRESS_RESERVED_BEGIN+0)
+#define OUT (ADDRESS_RESERVED_BEGIN+1)
+#define ZERO (ADDRESS_RESERVED_BEGIN+2)
+#define ONE (ADDRESS_RESERVED_BEGIN+3)
+#define IN (ADDRESS_RESERVED_BEGIN+4)
+
+// data addresses constants
+#define MIN_DATA_ADDRESS 0
+#define MAX_DATA_ADDRESS MAX_ADDRESS-ADDRESS_RESERVED_COUNT
+
+// - instruction index constants for reserved values
+
+#define MAX_INSTRUCTION_INDEX 255 // for uint8_t
 
 // reserved constants for instruction index (e.g. current_instruction_index, paths[0], paths[1], etc.)
-#define PROGRAM_START_INDEX 0
+#define INSTRUCTION_RESERVED_COUNT 1 // END
+
+#define INSTRUCTION_INDEX_RESERVED_BEGIN MAX_INSTRUCTION_INDEX-INSTRUCTION_RESERVED_COUNT
+#define PROGRAM_MIN_INDEX 0
+#define PROGRAM_MAX_INDEX MAX_INSTRUCTION_INDEX-INSTRUCTION_RESERVED_COUNT
+
+#define PROGRAM_START_INDEX PROGRAM_MIN_INDEX
 instruction_index_type current_instruction_index = PROGRAM_START_INDEX;
-#define END -1
+#define END (INSTRUCTION_INDEX_RESERVED_BEGIN+0) // program end index
 
 // *********************************************************
 
@@ -190,8 +212,9 @@ char getch(){
  }
 #endif
 
-#define INVALID_BIT -1
-#define QUIT -2
+#define MAX_BIT_VALUE 1
+#define INVALID_BIT MAX_BIT_VALUE+1
+#define QUIT MAX_BIT_VALUE+2
 
 #define PAUSE() get_char()
 
@@ -229,11 +252,27 @@ int getbit(){
 #define ClearBit(data,y) data &= ~(1 << y) /** Clear Data.Y to 0   **/
 #define SetBit(data,y)   data |= (1 << y)  /** Set Data.Y to 1     **/
 
-#define bitArray_wordSize (sizeof(bit_type)*8)
+#define bitArray_wordSize (sizeof(bit_array_element_t)*8)
 #define bitArray_wordIndex(bit_address) (bit_address/bitArray_wordSize)
 #define bitArray_bitIndex(bit_address)  (bit_address%bitArray_wordSize)
 
-void write_bit_to_memory(memory_index_type write_to, int bit){
+void test_data_address(memory_index_type data_address){
+	if(data_address>MAX_DATA_ADDRESS){
+		printf("address out of bounds: %d\n", data_address);
+		exit(1);
+	}
+}
+
+void test_instruction_index(instruction_index_type instruction_index){
+	if(instruction_index>MAX_INSTRUCTION_INDEX){
+		printf("instruction index out of bounds: %d\n", instruction_index);
+		exit(1);
+	}
+}
+
+void write_bit_to_memory(memory_index_type write_to, bit_t bit){
+
+	test_data_address(write_to);
 
 	#if BIT_ACCESS_IN_USE == SIMPLE_BIT_ACCESS
 		memory[write_to] = bit;
@@ -253,8 +292,11 @@ void write_bit_to_memory(memory_index_type write_to, int bit){
 	#endif
 }
 
-int read_bit_from_memory(memory_index_type read_from){
-	int value;
+bit_t read_bit_from_memory(memory_index_type read_from){
+
+	test_data_address(read_from);
+
+	bit_t value;
 	#if BIT_ACCESS_IN_USE == SIMPLE_BIT_ACCESS
 		value = memory[read_from];
 	#endif
@@ -270,8 +312,8 @@ int read_bit_from_memory(memory_index_type read_from){
 	return value;
 }
 
-int read_bit_from_address(memory_index_type read_from){
-	int value;
+bit_t read_bit_from_address(memory_index_type read_from){
+	bit_t value;
 	if(read_from==IN) {
 		if(true == SKIP_INPUT_REQUEST){
 			//printf(" @skipped");
@@ -299,19 +341,21 @@ int read_bit_from_address(memory_index_type read_from){
 	return value;
 }
 
-int write_bit_to_address(memory_index_type write_to, int bit){
-	write_bit_to_memory(write_to, bit);
+int write_bit_to_address(memory_index_type write_to, bit_t bit_to_write){
 
 	if(write_to==OUT){
-		if(DEBUG_USING_PRINTF)
-			printf(" out:%d", bit);
-		return bit;
-	}else{
-		return INVALID_BIT;
+		if(DEBUG_USING_PRINTF) printf(" out:%d", bit_to_write);
+	} else if(write_to==PATHSEL){
+		pathsel = bit_to_write;
+	} else {
+		write_bit_to_memory(write_to, bit_to_write);
 	}
+
+	return bit_to_write;
 }
 
 int perform_operation(instruction_type prog_selector[]){
+	test_instruction_index(current_instruction_index);
 	instruction_type instruction = prog_selector[(long long)current_instruction_index];
 	int bit = read_bit_from_address(instruction.mapping[1]);
 	if(bit==QUIT) return QUIT;
@@ -321,8 +365,7 @@ int perform_operation(instruction_type prog_selector[]){
 
 bool path_choice(instruction_type prog_selector[]){
 	instruction_type instruction = prog_selector[(long long)current_instruction_index];
-	int selector_bit = read_bit_from_memory(PATHSEL);
-	int next = instruction.paths[selector_bit];
+	int next = instruction.paths[pathsel];
 	bool end;
 	if(END != next){ current_instruction_index = next; end=false; }
 	else end=true;
@@ -502,7 +545,7 @@ int next_program(instruction_type program[], const int size){
 }
 
 void reset_memory(){
-	const int memory_size = sizeof(memory)/sizeof(bit_type);
+	const int memory_size = sizeof(memory)/sizeof(bit_array_element_t);
 	// set all memory to zero
 	memset(memory, 0, memory_size);
 }
@@ -549,7 +592,7 @@ int iterate_programs(){
 int main(int argc, char **argv) {
 	//bootstrap_tests();
 
-	run_program(prog_array);
+	run_program(prog_bitcopy_end);
 	//multiple_programs_executed_sequentially();
 	return 0;
 }
