@@ -1,9 +1,14 @@
+
+// includes
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <stdint.h>
 #include <string.h> // for memset
 #include <stdbool.h>
+
+// console I/O
 
 #define SKIP_INPUT_REQUEST false
 
@@ -29,6 +34,8 @@
 #include <conio.h>
 #endif
 
+// bit handling
+
 #define SIMPLE_BIT_ACCESS 1
 #define BITWISE_OPS_BIT_ACCESS 2
 #define BIT_ACCESS_IN_USE BITWISE_OPS_BIT_ACCESS
@@ -40,11 +47,9 @@
 	typedef uint32_t bit_array_element_t;
 #endif
 
-#define MIN_ADDRESS 0
-#define MAX_ADDRESS 255
-bit_array_element_t memory[MAX_ADDRESS+1] = {0};
-
 typedef uint8_t bit_t;
+
+// - program data
 
 // path selector
 bit_t pathsel = 0;
@@ -60,6 +65,8 @@ typedef struct instruction_type_struct{
 	instruction_index_type paths[2];
 } instruction_type;
 
+// - reserved constants (constants for reserved values)
+
 // reserved constants for memory address (e.g. mapping[0] or mapping[1])
 #define ADDRESS_RESERVED_COUNT 5 // PATHSEL, OUT, ZERO, ONE, IN
 
@@ -70,15 +77,20 @@ typedef struct instruction_type_struct{
 #define ONE (ADDRESS_RESERVED_BEGIN+3)
 #define IN (ADDRESS_RESERVED_BEGIN+4)
 
-// data addresses constants
+// reserved constants for data addresses
+
+#define MIN_ADDRESS 0
+#define MAX_ADDRESS 255
+
 #define MIN_DATA_ADDRESS 0
 #define MAX_DATA_ADDRESS MAX_ADDRESS-ADDRESS_RESERVED_COUNT
 
-// - instruction index constants for reserved values
+bit_array_element_t memory[MAX_DATA_ADDRESS+1] = {0};
+
+// reserved constants for instruction index (e.g. current_instruction_index, paths[0], paths[1], etc.)
 
 #define MAX_INSTRUCTION_INDEX 255 // for uint8_t
 
-// reserved constants for instruction index (e.g. current_instruction_index, paths[0], paths[1], etc.)
 #define INSTRUCTION_RESERVED_COUNT 1 // END
 
 #define INSTRUCTION_INDEX_RESERVED_BEGIN MAX_INSTRUCTION_INDEX-INSTRUCTION_RESERVED_COUNT
@@ -90,6 +102,8 @@ instruction_index_type current_instruction_index = PROGRAM_START_INDEX;
 #define END (INSTRUCTION_INDEX_RESERVED_BEGIN+0) // program end index
 
 // *********************************************************
+
+// programs
 
 // program: bit copy
 instruction_type prog_bitcopy[] =	{
