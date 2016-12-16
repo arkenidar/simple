@@ -25,3 +25,15 @@ simple
 .anjuta*
 *.anjuta
 *~
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+
+# NetBeans IDE (supports CMake)
+nbproject/
+
+# ignore Makefile changes by build systems such as CMake or GNU AutoTools
+Makefile
