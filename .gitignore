@@ -17,4 +17,11 @@ simple
 
 *.log.txt
 
+# idea IDE
 .idea/*
+
+#anjuta IDE
+.anjuta/*
+.anjuta*
+*.anjuta
+*~
