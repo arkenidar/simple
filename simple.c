@@ -195,7 +195,7 @@ char get_char_configurable(int echoes){
     //return _getche();
 
     char c = getch();
-    if(echoes) putch(c);
+    if(echoes) printf("%c", c);
     return c;
 }
 #endif
