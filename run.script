@@ -1,0 +1,2 @@
+rm simple
+autoheader && aclocal && autoreconf --install && autoconf && automake && ./configure && make && ./simple

@@ -3,12 +3,11 @@
 
 AC_PREREQ([2.69])
 AC_INIT([simple], [1.0.0], [dario.cangialosi@gmail.com])
-AC_CONFIG_SRCDIR([simple.c])
+AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADERS([config.h])
 
 # automake
-AM_INIT_AUTOMAKE([foreign subdir-objects])
-AC_OUTPUT(Makefile)
+AM_INIT_AUTOMAKE([foreign])
 
 # Checks for programs.
 AC_PROG_CC
@@ -27,5 +26,5 @@ AC_TYPE_UINT8_T
 AC_FUNC_MALLOC
 AC_CHECK_FUNCS([memset])
 
-AC_CONFIG_FILES([makefile])
-AC_OUTPUT
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT()
