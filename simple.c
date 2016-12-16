@@ -195,7 +195,7 @@ char get_char_configurable(int echoes){
     //return _getche();
 
     char c = getch();
-    if(echo) putch(c);
+    if(echoes) putch(c);
     return c;
 }
 #endif
@@ -224,7 +224,7 @@ char get_char_configurable(int echoes){
     old.c_lflag|=ECHO;
     if(tcsetattr(0, TCSADRAIN, &old)<0)
         perror ("tcsetattr ~ICANON");
-    if(echo) printf("%c",buf);
+    if(echoes) printf("%c",buf);
     return buf;
 }
 #endif
