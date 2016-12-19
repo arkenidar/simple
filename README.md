@@ -10,10 +10,10 @@ The instruction is defined as:
 
 Execution of one instruction: bit copy and path selection phases.
 - BIT COPY
-  - input phase (Read from input address)
-  - output phase (write to output address a copy of the bit from input address)
+  - 1- input phase (Read from input address)
+  - 2- output phase (write to output address a copy of the bit from input address)
 - PATH SELECTION
-  - instruction selection phase (instruction selection from Path Selector address,
+  - 3- instruction selection phase (instruction selection from Path Selector address,
     address that could be written or not in the output phase).
 
 https://en.wikipedia.org/wiki/Microcode
