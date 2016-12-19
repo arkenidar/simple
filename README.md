@@ -1,12 +1,14 @@
 The instruction is defined as:
-- 1- Input Address
-  - (it defines where to read from: Memory or Input device)
-- 2- Output Address
-  - (it defines where to write: Memory or Output device)
-- 3- Instruction for case 0
-  - (executed when the bit in Path Selector address is 0)
-- 4- Instruction for case 1
-  - (executed when the bit in Path Selector address is 1)
+- ADDRESSES
+  - 1- Input Address
+    - (it defines where to read from: Memory or Input device)
+  - 2- Output Address
+    - (it defines where to write: Memory or Output device)
+- INSTRUCTIONS
+  - 3- Instruction for case 0
+    - (executed when the bit in Path Selector address is 0)
+  - 4- Instruction for case 1
+    - (executed when the bit in Path Selector address is 1)
 
 Execution of one instruction: bit copy and path selection phases.
 - BIT COPY
