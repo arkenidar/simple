@@ -186,6 +186,8 @@ instruction_type* g_prog_selector = prog_nor;
 #define INVALID_BIT MAX_BIT_VALUE+1
 #define QUIT MAX_BIT_VALUE+2
 
+int inline_print=1; // disable inline print for grepping stdout
+
 // get_char() in windows and linux
 
 #ifdef _WIN32
@@ -241,7 +243,7 @@ char get_char(){
 int getbit(){
 
 	if(DEBUG_USING_PRINTF)
-		printf(" in:");
+		printf(inline_print?" in:":"in:");
 
 	char ch = get_char();
 
@@ -330,6 +332,7 @@ bit_t read_bit_from_address(memory_index_type read_from){
 		}else
 		while(true){
 			value = getbit();
+			if(!inline_print) printf("\n");
 			if(value == INVALID_BIT){
 				printf(" [insert bit (type '0' or '1') or quit (type 'q')!] ");
 			} else if(value == QUIT){
@@ -353,7 +356,7 @@ bit_t read_bit_from_address(memory_index_type read_from){
 int write_bit_to_address(memory_index_type write_to, bit_t bit_to_write){
 
 	if(write_to==OUT){
-		if(DEBUG_USING_PRINTF) printf(" out:%d", bit_to_write);
+		if(DEBUG_USING_PRINTF) printf(inline_print?" out:%d":"out:%d\n", bit_to_write);
 	} else if(write_to==PATHSEL){
 		pathsel = bit_to_write;
 	} else {
@@ -405,7 +408,7 @@ int run_program(instruction_type* program_selector){
 
 	int pause = false;
 
-	printf(" { ");
+	printf(inline_print?" { ":"{\n");
 
 	// counters for stats
 	int cycle_counter = 0;
@@ -418,7 +421,7 @@ int run_program(instruction_type* program_selector){
 		const int out = perform_operation(program_selector);
 
 		if(out == QUIT){
-			printf(" @QUIT");
+			printf(inline_print?" @QUIT":"@QUIT\n");
 			break;
 		}
 
@@ -454,14 +457,14 @@ int run_program(instruction_type* program_selector){
 
 		bool end = path_choice(program_selector);
 		if(end){
-			printf(" @END");
+			printf(inline_print?" @END":"@END\n");
 			break;
 		}
 
 		cycle_counter++; if(STEPS_LIMIT!=STEPS_LIMIT_NO_LIMIT && cycle_counter>=STEPS_LIMIT) break;
 	}
 
-	printf(" } \n");
+	printf(inline_print?" } \n":"}\n");
 
 	if(pause == true) PAUSE();
 
@@ -598,6 +601,7 @@ int iterate_programs(){
 	return max_oc;
 }
 
+//  {  in:1 out:1 in:0 in:0 out:0 in:0 in:1 out:1 in:0 in:0 out:0 in:1 @END }
 int main(int argc, char **argv) {
 	//bootstrap_tests();
 
