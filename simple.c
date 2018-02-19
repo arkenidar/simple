@@ -404,7 +404,7 @@ int test_bit_array(){
 #define STEPS_LIMIT STEPS_LIMIT_NO_LIMIT
 
 int run_program(instruction_type* program_selector){
-	const char* target_output = NULL; // can be set to NULL to disable
+	const char* target_output = "01"; // can be set to NULL to disable
 
 	int pause = false;
 
@@ -607,7 +607,9 @@ int main(int argc, char **argv) {
 
     //PAUSE();
 
-	run_program(prog_bitcopy_end);
+	iterate_programs();
+
+	//run_program(prog_bitcopy_end);
 	//multiple_programs_executed_sequentially();
 	return 0;
 }
